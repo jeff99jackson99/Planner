@@ -180,9 +180,11 @@ class AscentPlannerCalendar:
                     # Consolidate Matt/Madison variations
                     who_clean = self._consolidate_department_name(who)
                     
-                    if who_clean not in alerts:
-                        alerts[who_clean] = []
-                    alerts[who_clean].append(f"Open Decision: {decision_text}")
+                    # Skip if consolidation returned None (NaN values)
+                    if who_clean is not None:
+                        if who_clean not in alerts:
+                            alerts[who_clean] = []
+                        alerts[who_clean].append(f"Open Decision: {decision_text}")
         
         # Check high priority hotfixes - ONLY if they require Ascent action
         hotfixes_df = self.get_hotfixes_status()
@@ -219,8 +221,9 @@ class AscentPlannerCalendar:
                         accountable = str(accountable).strip()
                         accountable = self._consolidate_department_name(accountable)
                     
-                    # Only include if it's an Ascent person/team
-                    if accountable and accountable != 'Unknown' and self._is_ascent_team(accountable):
+                    # Only include if it's an Ascent person/team and not None
+                    if (accountable is not None and accountable != 'Unknown' and 
+                        self._is_ascent_team(accountable)):
                         if accountable not in alerts:
                             alerts[accountable] = []
                         alerts[accountable].append(f"Unclear Requirements: {task_name}")
@@ -228,23 +231,44 @@ class AscentPlannerCalendar:
         return alerts
     
     def _consolidate_department_name(self, name: str) -> str:
-        """Consolidate similar department/person names"""
+        """Consolidate similar department/person names with smart matching"""
+        if pd.isna(name) or str(name).lower() in ['nan', 'none', '', 'n/a']:
+            return None  # Return None for NaN values to filter them out
+        
         name_clean = str(name).strip().lower()
+        name_clean = name_clean.replace('/', '').replace('//', '').replace(' ', '')
         
-        # Consolidate Matt/Madison variations
-        if any(x in name_clean for x in ['matt', 'madison']):
-            if 'matt' in name_clean and 'madison' in name_clean:
-                return 'Matt & Madison'
-            elif 'matt' in name_clean:
-                return 'Matt'
-            elif 'madison' in name_clean:
-                return 'Madison'
+        # Matt/Madison consolidation - catch all variations
+        matt_variations = ['matt', 'matthew']
+        madison_variations = ['madison', 'maddy']
         
-        # Consolidate development team variations
-        if any(x in name_clean for x in ['upendra', 'naresh', 'shivani', 'dattu']):
-            return 'Development Team (Sona)'
+        has_matt = any(variation in name_clean for variation in matt_variations)
+        has_madison = any(variation in name_clean for variation in madison_variations)
         
-        # Return cleaned name
+        if has_matt or has_madison:
+            return 'Matt & Madison'
+        
+        # Upendra variations
+        upendra_variations = ['upendra', 'upendrachaudhari', 'upendrachaudhari,nareshbhai']
+        if any(variation in name_clean for variation in upendra_variations):
+            return 'Upendra Chaudhari'
+        
+        # Naresh variations  
+        naresh_variations = ['naresh', 'nareshbhai', 'nareshpansuriya']
+        if any(variation in name_clean for variation in naresh_variations):
+            return 'Naresh Pansuriya'
+        
+        # Shivani variations
+        shivani_variations = ['shivani', 'shivanichinial', 'dattu/shivani']
+        if any(variation in name_clean for variation in shivani_variations):
+            return 'Shivani Chinial'
+        
+        # SDS variations
+        sds_variations = ['sds', 'sds ']
+        if any(variation in name_clean for variation in sds_variations):
+            return 'SDS'
+        
+        # Return original cleaned name if no matches
         return str(name).strip()
     
     def _requires_ascent_action(self, issue_summary: str) -> bool:
@@ -860,11 +884,17 @@ def show_data_insights(planner: AscentPlannerCalendar):
             if not planner_df.empty:
                 unclear_tasks = planner_df[planner_df['Requirement Unclear'] == True]
                 if not unclear_tasks.empty:
-                    risk_by_dept = unclear_tasks['Accountable'].value_counts().head(8)
-                    risk_by_dept = risk_by_dept[risk_by_dept.index.notna()]
-                    risk_by_dept = risk_by_dept[risk_by_dept.index != 'nan']
+                    # Consolidate department names before counting
+                    consolidated_depts = []
+                    for _, task in unclear_tasks.iterrows():
+                        dept = task.get('Accountable')
+                        consolidated = planner._consolidate_department_name(dept)
+                        if consolidated is not None:  # Skip None values (NaN)
+                            consolidated_depts.append(consolidated)
                     
-                    if not risk_by_dept.empty:
+                    if consolidated_depts:
+                        risk_by_dept = pd.Series(consolidated_depts).value_counts().head(8)
+                        
                         fig_risk = px.pie(
                             values=risk_by_dept.values,
                             names=risk_by_dept.index,
@@ -892,17 +922,25 @@ def show_data_insights(planner: AscentPlannerCalendar):
                         decision_owners.append(who)
                 
                 if decision_owners:
-                    decision_counts = pd.Series(decision_owners).value_counts()
+                    # Consolidate Matt/Madison variations before charting
+                    consolidated_owners = []
+                    for owner in decision_owners:
+                        consolidated = planner._consolidate_department_name(owner)
+                        if consolidated is not None:  # Skip None values
+                            consolidated_owners.append(consolidated)
                     
-                    fig_decisions = px.pie(
-                        values=decision_counts.values,
-                        names=decision_counts.index,
-                        title="Pending Decisions by Owner",
-                        color_discrete_sequence=px.colors.sequential.Oranges_r
-                    )
-                    fig_decisions.update_layout(height=400)
-                    fig_decisions.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
-                    st.plotly_chart(fig_decisions, use_container_width=True, key="exec_decisions")
+                    if consolidated_owners:
+                        decision_counts = pd.Series(consolidated_owners).value_counts()
+                        
+                        fig_decisions = px.pie(
+                            values=decision_counts.values,
+                            names=decision_counts.index,
+                            title="Pending Decisions by Owner",
+                            color_discrete_sequence=px.colors.sequential.Oranges_r
+                        )
+                        fig_decisions.update_layout(height=400)
+                        fig_decisions.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
+                        st.plotly_chart(fig_decisions, use_container_width=True, key="exec_decisions")
         
         with col2:
             # Critical Issues by Priority - What's blocking progress
@@ -1089,11 +1127,17 @@ def show_requirements_management(planner: AscentPlannerCalendar):
     with col1:
         # Requirements by department
         if not unclear_tasks.empty:
-            unclear_by_dept = unclear_tasks['Accountable'].value_counts().head(8)
-            unclear_by_dept = unclear_by_dept[unclear_by_dept.index.notna()]
-            unclear_by_dept = unclear_by_dept[unclear_by_dept.index != 'nan']
+            # Consolidate department names before counting
+            consolidated_depts = []
+            for _, task in unclear_tasks.iterrows():
+                dept = task.get('Accountable')
+                consolidated = planner._consolidate_department_name(dept)
+                if consolidated is not None:  # Skip None values (NaN)
+                    consolidated_depts.append(consolidated)
             
-            if not unclear_by_dept.empty:
+            if consolidated_depts:
+                unclear_by_dept = pd.Series(consolidated_depts).value_counts().head(8)
+                
                 fig_unclear = px.pie(
                     values=unclear_by_dept.values,
                     names=unclear_by_dept.index,
@@ -1229,7 +1273,9 @@ def show_decision_tracking(planner: AscentPlannerCalendar):
     for _, row in decisions_df.iterrows():
         if 'Open' in str(row.get('Unnamed: 3', '')):
             who = str(row.get('Gayatri Raol ', 'Unknown'))
-            decision_owners.append(who)
+            consolidated = planner._consolidate_department_name(who)
+            if consolidated is not None:  # Skip None values
+                decision_owners.append(consolidated)
     
     if decision_owners:
         decision_counts = pd.Series(decision_owners).value_counts()
