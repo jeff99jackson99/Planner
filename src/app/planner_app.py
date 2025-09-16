@@ -17,7 +17,7 @@ import hashlib
 # Page configuration
 st.set_page_config(
     page_title="Ascent Planner Calendar",
-    page_icon="🏢",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -41,10 +41,10 @@ class AscentPlannerCalendar:
                 df = pd.read_excel(self.excel_path, sheet_name=sheet_name)
                 self.data[sheet_name] = df
                 
-            st.success(f"✅ Loaded {len(self.data)} sheets from Excel file")
+            st.success(f"Loaded {len(self.data)} sheets from Excel file")
             
         except Exception as e:
-            st.error(f"❌ Error loading Excel file: {e}")
+            st.error(f"Error loading Excel file: {e}")
     
     def get_planner_tasks(self) -> pd.DataFrame:
         """Get tasks from the main Planner sheet"""
@@ -298,6 +298,131 @@ class AscentPlannerCalendar:
             milestones.extend(tasks)
         
         return sorted(milestones, key=lambda x: x['date'])
+
+def show_executive_dashboard(planner: AscentPlannerCalendar):
+    """Show consolidated executive dashboard with all key information"""
+    
+    # Key Metrics Row
+    st.markdown('<div class="section-header"><h3>Key Performance Indicators</h3></div>', unsafe_allow_html=True)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    # Total tasks
+    planner_df = planner.get_planner_tasks()
+    total_tasks = len(planner_df) if not planner_df.empty else 0
+    
+    # Open decisions
+    decisions_df = planner.get_open_decisions()
+    open_decisions = len(decisions_df) if not decisions_df.empty else 0
+    
+    # Critical issues
+    hotfixes_df = planner.get_hotfixes_status()
+    critical_issues = 0
+    if not hotfixes_df.empty:
+        for _, row in hotfixes_df.iterrows():
+            priority = str(row.get('Unnamed: 3', '')).lower()
+            status = str(row.get('Unnamed: 5', '')).lower()
+            summary = str(row.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue'))
+            if ('highest' in priority and 'done' not in status and planner._requires_ascent_action(summary)):
+                critical_issues += 1
+    
+    # Unclear requirements
+    unclear_reqs = 0
+    if not planner_df.empty:
+        unclear_reqs = len(planner_df[planner_df['Requirement Unclear'] == True])
+    
+    with col1:
+        st.metric("Total Tasks", total_tasks, help="Total tasks across all project sheets")
+    with col2:
+        st.metric("Open Decisions", open_decisions, help="Decisions requiring immediate attention")
+    with col3:
+        st.metric("Critical Issues", critical_issues, help="High priority issues requiring Ascent action")
+    with col4:
+        st.metric("Unclear Requirements", unclear_reqs, help="Tasks needing requirement clarification")
+    
+    # Department Alerts Section
+    st.markdown('<div class="section-header"><h3>Department Attention Required</h3></div>', unsafe_allow_html=True)
+    
+    alerts = planner.get_department_alerts()
+    if alerts:
+        for dept, issues in alerts.items():
+            dept_display = str(dept).strip()
+            if dept_display and dept_display != 'Unknown':
+                st.markdown(f"""
+                <div class="alert-container">
+                    <h4 style="margin-top: 0; color: #856404;">{dept_display}</h4>
+                    <p style="margin-bottom: 0;"><strong>{len(issues)} items</strong> requiring attention</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                with st.expander(f"View {dept_display} Details"):
+                    for i, issue in enumerate(issues, 1):
+                        st.write(f"{i}. {issue}")
+    else:
+        st.markdown("""
+        <div class="success-container">
+            <h4 style="margin-top: 0; color: #155724;">All Departments On Track</h4>
+            <p style="margin-bottom: 0;">No immediate departmental attention required</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Status Distribution
+    st.markdown('<div class="section-header"><h3>Project Status Overview</h3></div>', unsafe_allow_html=True)
+    
+    if not planner_df.empty:
+        status_counts = planner_df['Status1'].value_counts()
+        status_counts = status_counts[status_counts.index.notna()]
+        
+        if not status_counts.empty:
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                fig = px.pie(
+                    values=status_counts.values,
+                    names=status_counts.index,
+                    title="Task Status Distribution",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig.update_layout(
+                    showlegend=True,
+                    height=400,
+                    title_font_size=16
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                st.markdown("**Status Breakdown:**")
+                for status, count in status_counts.items():
+                    percentage = (count / total_tasks) * 100
+                    st.write(f"• **{status}:** {count} ({percentage:.1f}%)")
+    
+    # Recent Activity Summary
+    st.markdown('<div class="section-header"><h3>System Information</h3></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="data-card">
+            <h4>Data Sources</h4>
+            <p><strong>{len(planner.data)} Excel sheets</strong> loaded successfully</p>
+            <ul>
+        """, unsafe_allow_html=True)
+        
+        for sheet_name, df in planner.data.items():
+            st.markdown(f"<li>{sheet_name}: {len(df)} rows</li>", unsafe_allow_html=True)
+        
+        st.markdown("</ul></div>", unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="data-card">
+            <h4>System Status</h4>
+            <p><strong>Last Updated:</strong> {datetime.now().strftime('%B %d, %Y at %H:%M:%S')}</p>
+            <p><strong>Current Date:</strong> {planner.current_date.strftime('%A, %B %d, %Y')}</p>
+            <p><strong>Data File:</strong> Ascent Planner Sep, 16 2025.xlsx</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 def show_todays_overview(planner: AscentPlannerCalendar):
     """Show today's overview with all relevant information"""
@@ -627,6 +752,66 @@ def logout():
     st.session_state['username'] = None
     st.rerun()
 
+def apply_custom_css():
+    """Apply custom CSS for professional theme"""
+    st.markdown("""
+    <style>
+    .main {
+        padding-top: 1rem;
+    }
+    .stApp {
+        background-color: #f8f9fa;
+    }
+    .css-1d391kg {
+        background-color: #ffffff;
+    }
+    .metric-container {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    .alert-container {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .success-container {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .header-container {
+        background: linear-gradient(90deg, #2c3e50 0%, #3498db 100%);
+        padding: 2rem 1rem;
+        border-radius: 10px;
+        color: white;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    .section-header {
+        background-color: #34495e;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    .data-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid #3498db;
+        margin-bottom: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 def main():
     """Main application function"""
     # Check authentication first
@@ -634,8 +819,16 @@ def main():
         login_page()
         return
     
-    st.title("Ascent Planner Calendar")
-    st.markdown("**Project Tracking & Milestone Management**")
+    # Apply custom styling
+    apply_custom_css()
+    
+    # Professional header
+    st.markdown("""
+    <div class="header-container">
+        <h1 style="margin: 0; font-size: 2.5rem; font-weight: 300;">Ascent Planner Calendar</h1>
+        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9;">Project Tracking & Milestone Management System</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     try:
         # Initialize the planner - handle both local and cloud deployment
@@ -707,7 +900,7 @@ def main():
     view_mode = st.sidebar.selectbox(
         "Select View",
         [
-            "Today's Overview",
+            "Executive Dashboard",
             "Calendar View", 
             "Upcoming Milestones",
             "Department Dashboard",
@@ -720,9 +913,9 @@ def main():
         planner.load_data()
         st.rerun()
     
-    # Main content area
-    if view_mode == "Today's Overview":
-        show_todays_overview(planner)
+    # Main content area - consolidated dashboard
+    if view_mode == "Executive Dashboard":
+        show_executive_dashboard(planner)
     elif view_mode == "Calendar View":
         show_calendar_view(planner)
     elif view_mode == "Upcoming Milestones":
@@ -731,6 +924,8 @@ def main():
         show_department_dashboard(planner)
     elif view_mode == "Data Analytics":
         show_data_insights(planner)
+    else:
+        show_executive_dashboard(planner)  # Default view
     
     # Footer
     st.sidebar.markdown("---")
