@@ -480,17 +480,52 @@ def main():
     st.title("📅 Ascent Planner Calendar")
     st.markdown("*Comprehensive project tracking and calendar management*")
     
-    # Initialize the planner - handle both local and cloud deployment
-    excel_path = os.getenv('EXCEL_PATH', "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx")
-    
-    # For Streamlit Cloud, try relative path first
-    if not os.path.exists(excel_path):
-        excel_path = "Ascent Planner Sep, 16 2025.xlsx"
-    
-    planner = AscentPlannerCalendar(excel_path)
-    
-    if not planner.data:
-        st.error("❌ No data loaded. Please check the Excel file.")
+    try:
+        # Initialize the planner - handle both local and cloud deployment
+        excel_path = os.getenv('EXCEL_PATH', "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx")
+        
+        # For Streamlit Cloud, try relative path first
+        if not os.path.exists(excel_path):
+            excel_path = "Ascent Planner Sep, 16 2025.xlsx"
+        
+        # Debug info
+        st.sidebar.write(f"**Debug Info:**")
+        st.sidebar.write(f"Excel path: {excel_path}")
+        st.sidebar.write(f"File exists: {os.path.exists(excel_path)}")
+        st.sidebar.write(f"Current dir: {os.getcwd()}")
+        
+        if not os.path.exists(excel_path):
+            st.error("❌ Excel file not found!")
+            st.write("**Looking for file:**", excel_path)
+            st.write("**Files in current directory:**")
+            try:
+                files = [f for f in os.listdir(".") if f.endswith(('.xlsx', '.xls'))]
+                if files:
+                    st.write("Excel files found:")
+                    for f in files:
+                        st.write(f"- {f}")
+                    # Try the first Excel file found
+                    excel_path = files[0]
+                    st.info(f"Trying to use: {excel_path}")
+                else:
+                    st.write("No Excel files found in current directory")
+                    st.stop()
+            except Exception as e:
+                st.error(f"Error listing files: {e}")
+                st.stop()
+        
+        planner = AscentPlannerCalendar(excel_path)
+        
+        if not planner.data:
+            st.error("❌ No data loaded. Please check the Excel file.")
+            st.stop()
+            
+    except Exception as e:
+        st.error(f"❌ Application Error: {e}")
+        st.write("**Full error details:**")
+        st.code(str(e))
+        import traceback
+        st.code(traceback.format_exc())
         st.stop()
     
     # Sidebar navigation
