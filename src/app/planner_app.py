@@ -408,6 +408,108 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                     
                     st.warning("**Action Required:** Clarify requirements before work can proceed")
     
+    # Department Organization Section
+    st.markdown('<div class="section-header"><h3>Tasks Organized by Business Department</h3></div>', unsafe_allow_html=True)
+    
+    # Categorize unclear requirements by business department
+    if unclear_reqs > 0:
+        unclear_tasks = planner_df[planner_df['Requirement Unclear'] == True]
+        
+        # Define department categories based on task content
+        departments = {
+            'Claims': [],
+            'Accounting': [],
+            'Cancellations': [],
+            'Commissions': [],
+            'Onboarding': [],
+            'Reinsurance': []
+        }
+        
+        # Categorize tasks by department based on task name content
+        for _, task in unclear_tasks.iterrows():
+            task_name = str(task.get('Task Name', 'Unknown')).strip().lower()
+            accountable = task.get('Accountable')
+            status = task.get('Status1')
+            
+            # Clean up owner info
+            if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+                owner = planner._consolidate_department_name(accountable)
+            else:
+                owner = 'UNASSIGNED'
+            
+            # Clean up status
+            if pd.notna(status) and str(status).lower() not in ['nan', 'none', '']:
+                status_clean = str(status)
+            else:
+                status_clean = 'Not Set'
+            
+            task_info = {
+                'name': str(task.get('Task Name', 'Unknown')).strip(),
+                'owner': owner,
+                'status': status_clean
+            }
+            
+            # Categorize by keywords in task name
+            if any(keyword in task_name for keyword in ['claim', 'payment to claim', 'lemon squad', 'snapsheet']):
+                departments['Claims'].append(task_info)
+            elif any(keyword in task_name for keyword in ['reconcile', 'journal', 'cash', 'financial', 'rpt', 'report']):
+                departments['Accounting'].append(task_info)
+            elif any(keyword in task_name for keyword in ['cancel', 'refund', 'diversicare']):
+                departments['Cancellations'].append(task_info)
+            elif any(keyword in task_name for keyword in ['commission', 'statement', 'payee']):
+                departments['Commissions'].append(task_info)
+            elif any(keyword in task_name for keyword in ['onboard', 'setup', 'agent', 'dealer']):
+                departments['Onboarding'].append(task_info)
+            elif any(keyword in task_name for keyword in ['reins', 'cession', 'collateral']):
+                departments['Reinsurance'].append(task_info)
+            else:
+                # Put uncategorized items in the most relevant department
+                if 'nacha' in task_name or 'ach' in task_name or 'stripe' in task_name:
+                    departments['Accounting'].append(task_info)
+                else:
+                    departments['Accounting'].append(task_info)  # Default to accounting
+        
+        # Create tabs for each department
+        dept_tabs = st.tabs([f"{dept} ({len(tasks)})" for dept, tasks in departments.items() if len(tasks) > 0])
+        
+        tab_index = 0
+        for dept_name, tasks in departments.items():
+            if len(tasks) > 0:
+                with dept_tabs[tab_index]:
+                    st.write(f"**{len(tasks)} tasks** in {dept_name} department with unclear requirements:")
+                    
+                    # Create dropdown for this department
+                    dept_options = ["Select task..."] + [task['name'] for task in tasks]
+                    selected_dept_task = st.selectbox(
+                        f"Review {dept_name} tasks:",
+                        dept_options,
+                        key=f"dept_{dept_name.lower()}_dropdown"
+                    )
+                    
+                    if selected_dept_task != "Select task...":
+                        # Find the selected task
+                        selected_task_info = next(task for task in tasks if task['name'] == selected_dept_task)
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.write(f"**Owner:** {selected_task_info['owner']}")
+                        with col2:
+                            st.write(f"**Status:** {selected_task_info['status']}")
+                        with col3:
+                            st.write(f"**Department:** {dept_name}")
+                        
+                        if selected_task_info['owner'] == 'UNASSIGNED':
+                            st.error("**Priority Action:** Assign owner to begin requirement clarification")
+                        else:
+                            st.warning("**Action Required:** Owner needs to clarify requirements")
+                    
+                    # Show summary list
+                    with st.expander(f"View all {dept_name} tasks"):
+                        for i, task in enumerate(tasks, 1):
+                            st.write(f"{i}. **{task['name']}** - {task['owner']} - {task['status']}")
+                
+                tab_index += 1
+    
     # Key Performance Indicators Explanation
     st.markdown('<div class="section-header"><h3>Key Performance Indicators Explained</h3></div>', unsafe_allow_html=True)
     
