@@ -362,6 +362,51 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
         st.metric("Critical Issues (Ascent Action)", critical_issues, help="Highest priority issues requiring Ascent business decisions or approvals")
     with col4:
         st.metric("Tasks Blocked on Requirements", unclear_reqs, help="Tasks that cannot proceed until requirements are clarified")
+        
+        # Add dropdown for unclear requirements
+        if unclear_reqs > 0:
+            unclear_tasks = planner_df[planner_df['Requirement Unclear'] == True]
+            unclear_options = ["Select blocked task..."] + [str(task.get('Task Name', 'Unknown')).strip() 
+                                                           for _, task in unclear_tasks.iterrows() 
+                                                           if str(task.get('Task Name', 'Unknown')).strip()]
+            
+            selected_unclear = st.selectbox(
+                f"Review {unclear_reqs} blocked tasks:",
+                unclear_options,
+                key="exec_unclear_dropdown"
+            )
+            
+            if selected_unclear != "Select blocked task...":
+                # Find the selected task details
+                selected_task_data = unclear_tasks[unclear_tasks['Task Name'].str.strip() == selected_unclear].iloc[0]
+                
+                with st.expander(f"Task Details: {selected_unclear}", expanded=True):
+                    col_a, col_b = st.columns(2)
+                    
+                    with col_a:
+                        accountable = selected_task_data.get('Accountable')
+                        if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+                            accountable_clean = planner._consolidate_department_name(accountable)
+                            st.write(f"**Owner:** {accountable_clean}")
+                        else:
+                            st.error("**Owner:** UNASSIGNED")
+                        
+                        status = selected_task_data.get('Status1')
+                        if pd.notna(status) and str(status).lower() not in ['nan', 'none', '']:
+                            st.write(f"**Status:** {status}")
+                        else:
+                            st.write("**Status:** Not Set")
+                    
+                    with col_b:
+                        beta_date = selected_task_data.get('Beta Realease')
+                        if pd.notna(beta_date):
+                            st.write(f"**Beta Release:** {beta_date}")
+                        
+                        prod_date = selected_task_data.get('PROD Release')
+                        if pd.notna(prod_date):
+                            st.write(f"**Prod Release:** {prod_date}")
+                    
+                    st.warning("**Action Required:** Clarify requirements before work can proceed")
     
     # Key Performance Indicators Explanation
     st.markdown('<div class="section-header"><h3>Key Performance Indicators Explained</h3></div>', unsafe_allow_html=True)
