@@ -480,8 +480,13 @@ def main():
     st.title("📅 Ascent Planner Calendar")
     st.markdown("*Comprehensive project tracking and calendar management*")
     
-    # Initialize the planner
-    excel_path = "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx"
+    # Initialize the planner - handle both local and cloud deployment
+    excel_path = os.getenv('EXCEL_PATH', "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx")
+    
+    # For Streamlit Cloud, try relative path first
+    if not os.path.exists(excel_path):
+        excel_path = "Ascent Planner Sep, 16 2025.xlsx"
+    
     planner = AscentPlannerCalendar(excel_path)
     
     if not planner.data:
