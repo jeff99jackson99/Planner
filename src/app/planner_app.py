@@ -967,30 +967,29 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 st.plotly_chart(fig_heatmap, use_container_width=True)
     
     with analytics_tab3:
-    
-    # Raw data access
-    st.subheader("🔍 Raw Data Explorer")
-    sheet_name = st.selectbox("Select Sheet", list(planner.data.keys()))
-    
-    if sheet_name:
-        df = planner.data[sheet_name]
-        st.write(f"**{sheet_name}** - {df.shape[0]} rows × {df.shape[1]} columns")
+        # Raw data access
+        st.subheader("Raw Data Explorer")
+        sheet_name = st.selectbox("Select Sheet", list(planner.data.keys()))
         
-        # Show column info
-        with st.expander("Column Information"):
-            for col in df.columns:
-                st.write(f"• **{col}** ({df[col].dtype})")
-        
-        # Show data with search
-        search_term = st.text_input("Search in data (optional)")
-        if search_term:
-            # Simple search across string columns
-            mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False, na=False)).any(axis=1)
-            filtered_df = df[mask]
-            st.write(f"Found {len(filtered_df)} matching rows")
-            st.dataframe(filtered_df, use_container_width=True)
-        else:
-            st.dataframe(df, use_container_width=True)
+        if sheet_name:
+            df = planner.data[sheet_name]
+            st.write(f"**{sheet_name}** - {df.shape[0]} rows × {df.shape[1]} columns")
+            
+            # Show column info
+            with st.expander("Column Information"):
+                for col in df.columns:
+                    st.write(f"• **{col}** ({df[col].dtype})")
+            
+            # Show data with search
+            search_term = st.text_input("Search in data (optional)")
+            if search_term:
+                # Simple search across string columns
+                mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False, na=False)).any(axis=1)
+                filtered_df = df[mask]
+                st.write(f"Found {len(filtered_df)} matching rows")
+                st.dataframe(filtered_df, use_container_width=True)
+            else:
+                st.dataframe(df, use_container_width=True)
 
 def check_authentication():
     """Check if user is authenticated"""
