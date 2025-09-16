@@ -1222,18 +1222,29 @@ def show_requirements_management(planner: AscentPlannerCalendar):
         )
         st.plotly_chart(fig_clarity, use_container_width=True, key="req_clarity_overall")
     
-    # Detailed unclear requirements list
-    st.subheader("Tasks Needing Requirement Clarification")
+    # Detailed unclear requirements list - only show assigned tasks
+    st.subheader("Tasks Needing Requirement Clarification (Assigned Only)")
     if not unclear_tasks.empty:
+        assigned_unclear_count = 0
+        
         for _, task in unclear_tasks.iterrows():
             task_name = str(task.get('Task Name', 'Unknown'))
-            accountable = str(task.get('Accountable', 'Unassigned'))
-            status = str(task.get('Status1', 'Not Set'))
+            accountable = task.get('Accountable')
+            status = task.get('Status1')
             
-            if pd.notna(accountable) and accountable != 'nan':
-                st.write(f"**{task_name}** - Assigned to: {accountable} - Status: {status}")
-            else:
-                st.write(f"**{task_name}** - UNASSIGNED - Status: {status}")
+            # Only show if task has valid owner and status
+            if (pd.notna(accountable) and 
+                str(accountable).lower() not in ['nan', 'none', ''] and
+                pd.notna(status) and 
+                str(status).lower() not in ['nan', 'none', '']):
+                
+                accountable_clean = planner._consolidate_department_name(accountable)
+                if accountable_clean is not None:
+                    assigned_unclear_count += 1
+                    st.write(f"**{task_name}** - Owner: {accountable_clean} - Status: {status}")
+        
+        if assigned_unclear_count == 0:
+            st.info("All unclear requirements are currently unassigned - need to assign owners first")
 
 def show_release_planning(planner: AscentPlannerCalendar):
     """Manage release planning for Beta and Production"""
@@ -1290,20 +1301,62 @@ def show_release_planning(planner: AscentPlannerCalendar):
                 )
                 st.plotly_chart(fig_prod, use_container_width=True, key="release_prod")
     
-    # Release timeline
-    st.subheader("Release Timeline")
+    # Release timeline - only show assigned tasks
+    st.subheader("Release Timeline (Assigned Tasks Only)")
     
-    # Show beta tasks with dates
+    # Show beta tasks with dates - filter out NaN values
     if not beta_df.empty:
-        st.write("**Beta Release Tasks:**")
+        st.write("**Beta Release Tasks with Owners:**")
+        assigned_beta_tasks = 0
+        
         for _, task in beta_df.iterrows():
             task_name = str(task.get('Task Name', 'Unknown'))
             beta_date = task.get('Beta Realease')
-            status = str(task.get('Status1', 'Not Set'))
-            accountable = str(task.get('Accountable', 'Unassigned'))
+            status = task.get('Status1')
+            accountable = task.get('Accountable')
             
-            if pd.notna(beta_date):
-                st.write(f"• **{task_name}** - {beta_date} - {status} - {accountable}")
+            # Only show if task has an owner and valid data
+            if (pd.notna(beta_date) and 
+                pd.notna(accountable) and 
+                str(accountable).lower() not in ['nan', 'none', ''] and
+                pd.notna(status) and 
+                str(status).lower() not in ['nan', 'none', '']):
+                
+                # Consolidate the accountable name
+                accountable_clean = planner._consolidate_department_name(accountable)
+                if accountable_clean is not None:
+                    assigned_beta_tasks += 1
+                    st.write(f"• **{task_name}** - {beta_date} - {status} - {accountable_clean}")
+        
+        if assigned_beta_tasks == 0:
+            st.info("No Beta Release tasks have been assigned to specific owners yet")
+    
+    # Show production tasks with dates - filter out NaN values  
+    if not prod_df.empty:
+        st.write("**Production Release Tasks with Owners:**")
+        assigned_prod_tasks = 0
+        
+        for _, task in prod_df.iterrows():
+            task_name = str(task.get('Task Name', 'Unknown'))
+            prod_date = task.get('PROD Release')
+            status = task.get('Status1')
+            accountable = task.get('Accountable')
+            
+            # Only show if task has an owner and valid data
+            if (pd.notna(prod_date) and 
+                pd.notna(accountable) and 
+                str(accountable).lower() not in ['nan', 'none', ''] and
+                pd.notna(status) and 
+                str(status).lower() not in ['nan', 'none', '']):
+                
+                # Consolidate the accountable name
+                accountable_clean = planner._consolidate_department_name(accountable)
+                if accountable_clean is not None:
+                    assigned_prod_tasks += 1
+                    st.write(f"• **{task_name}** - {prod_date} - {status} - {accountable_clean}")
+        
+        if assigned_prod_tasks == 0:
+            st.info("No Production Release tasks have been assigned to specific owners yet")
 
 def show_decision_tracking(planner: AscentPlannerCalendar):
     """Track open decisions and next steps"""
