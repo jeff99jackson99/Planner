@@ -389,7 +389,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_discrete_sequence=px.colors.qualitative.Set2
                     )
                     fig_pie.update_layout(height=400, title_font_size=14)
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                    st.plotly_chart(fig_pie, use_container_width=True, key="tab1_pie")
                 
                 with col2:
                     # Bar Chart
@@ -402,7 +402,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_continuous_scale='Blues'
                     )
                     fig_bar.update_layout(height=400, title_font_size=14)
-                    st.plotly_chart(fig_bar, use_container_width=True)
+                    st.plotly_chart(fig_bar, use_container_width=True, key="tab1_bar")
         
         with chart_tab2:
             # Department Workload Analysis
@@ -425,7 +425,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_continuous_scale='Viridis'
                     )
                     fig_dept.update_layout(height=500, title_font_size=14)
-                    st.plotly_chart(fig_dept, use_container_width=True)
+                    st.plotly_chart(fig_dept, use_container_width=True, key="tab2_dept")
             
             with col2:
                 # Department Status Breakdown
@@ -440,7 +440,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
                     fig_stacked.update_layout(height=500, title_font_size=14)
-                    st.plotly_chart(fig_stacked, use_container_width=True)
+                    st.plotly_chart(fig_stacked, use_container_width=True, key="tab2_stacked")
         
         with chart_tab3:
             # Timeline Analysis
@@ -465,7 +465,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                     color_discrete_map={'Clear Requirements': '#2ecc71', 'Unclear Requirements': '#e74c3c'}
                 )
                 fig_clarity.update_layout(height=400, title_font_size=14)
-                st.plotly_chart(fig_clarity, use_container_width=True)
+                st.plotly_chart(fig_clarity, use_container_width=True, key="tab3_clarity")
             
             with col2:
                 # Task Distribution by Phase
@@ -487,7 +487,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_discrete_sequence=['#3498db', '#9b59b6', '#95a5a6']
                     )
                     fig_phase.update_layout(height=400, title_font_size=14)
-                    st.plotly_chart(fig_phase, use_container_width=True)
+                    st.plotly_chart(fig_phase, use_container_width=True, key="tab3_phase")
         
         with chart_tab4:
             # Priority and Issue Analysis
@@ -516,7 +516,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                         color_discrete_map={'Open Decisions': '#f39c12', 'Resolved Decisions': '#27ae60'}
                     )
                     fig_decisions.update_layout(height=400, title_font_size=14)
-                    st.plotly_chart(fig_decisions, use_container_width=True)
+                    st.plotly_chart(fig_decisions, use_container_width=True, key="tab4_decisions")
             
             with col2:
                 # Department Alert Summary
@@ -537,7 +537,7 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
                     )
                     fig_alerts.update_layout(height=400, title_font_size=14)
                     fig_alerts.update_xaxes(tickangle=45)
-                    st.plotly_chart(fig_alerts, use_container_width=True)
+                    st.plotly_chart(fig_alerts, use_container_width=True, key="tab4_alerts")
     
     # Recent Activity Summary
     st.markdown('<div class="section-header"><h3>System Information</h3></div>', unsafe_allow_html=True)
@@ -782,7 +782,7 @@ def show_department_dashboard(planner: AscentPlannerCalendar):
                 title="Tasks by Department/Person",
                 labels={'x': 'Number of Tasks', 'y': 'Accountable'}
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="dept_workload")
 
 def show_data_insights(planner: AscentPlannerCalendar):
     """Show comprehensive data insights and analytics with multiple charts"""
@@ -853,7 +853,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 )
                 fig_completion.update_layout(height=400)
                 fig_completion.update_traces(texttemplate='%{label}: %{percent}', textposition='auto')
-                st.plotly_chart(fig_completion, use_container_width=True)
+                st.plotly_chart(fig_completion, use_container_width=True, key="exec_completion")
         
         with col2:
             # Risk assessment - unclear requirements by department
@@ -873,7 +873,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                         )
                         fig_risk.update_layout(height=400)
                         fig_risk.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
-                        st.plotly_chart(fig_risk, use_container_width=True)
+                        st.plotly_chart(fig_risk, use_container_width=True, key="exec_risk")
         
         # Actionable Business Insights
         st.subheader("Actionable Business Intelligence")
@@ -902,7 +902,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     )
                     fig_decisions.update_layout(height=400)
                     fig_decisions.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
-                    st.plotly_chart(fig_decisions, use_container_width=True)
+                    st.plotly_chart(fig_decisions, use_container_width=True, key="exec_decisions")
         
         with col2:
             # Critical Issues by Priority - What's blocking progress
@@ -930,7 +930,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     )
                     fig_priority.update_layout(height=400)
                     fig_priority.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
-                    st.plotly_chart(fig_priority, use_container_width=True)
+                    st.plotly_chart(fig_priority, use_container_width=True, key="exec_priority")
     
     with analytics_tab2:
         # Business-Critical Advanced Analytics
@@ -972,7 +972,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 )
                 fig_release.update_layout(height=400)
                 fig_release.update_traces(texttemplate='%{label}: %{value:.1f}%', textposition='auto')
-                st.plotly_chart(fig_release, use_container_width=True)
+                st.plotly_chart(fig_release, use_container_width=True, key="adv_release")
         
         with col2:
             # Department Bottleneck Analysis - Where are the problems?
@@ -992,7 +992,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     )
                     fig_bottleneck.update_layout(height=400)
                     fig_bottleneck.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
-                    st.plotly_chart(fig_bottleneck, use_container_width=True)
+                    st.plotly_chart(fig_bottleneck, use_container_width=True, key="adv_bottleneck")
         
         # Critical Path Analysis
         st.subheader("Critical Path & Risk Analysis")
@@ -1034,7 +1034,7 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     }
                 )
                 fig_risk_summary.update_layout(height=400)
-                st.plotly_chart(fig_risk_summary, use_container_width=True)
+                st.plotly_chart(fig_risk_summary, use_container_width=True, key="adv_risk_summary")
     
     with analytics_tab3:
         # Raw data access
@@ -1099,7 +1099,7 @@ def show_requirements_management(planner: AscentPlannerCalendar):
                     names=unclear_by_dept.index,
                     title="Unclear Requirements by Department"
                 )
-                st.plotly_chart(fig_unclear, use_container_width=True)
+                st.plotly_chart(fig_unclear, use_container_width=True, key="req_unclear_dept")
     
     with col2:
         # Overall clarity status
@@ -1115,7 +1115,7 @@ def show_requirements_management(planner: AscentPlannerCalendar):
             title="Overall Requirements Status",
             color_discrete_map={'Clear': '#27ae60', 'Unclear': '#e74c3c'}
         )
-        st.plotly_chart(fig_clarity, use_container_width=True)
+        st.plotly_chart(fig_clarity, use_container_width=True, key="req_clarity_overall")
     
     # Detailed unclear requirements list
     st.subheader("Tasks Needing Requirement Clarification")
@@ -1168,7 +1168,7 @@ def show_release_planning(planner: AscentPlannerCalendar):
                     names=beta_status.index,
                     title="Beta Release Task Status"
                 )
-                st.plotly_chart(fig_beta, use_container_width=True)
+                st.plotly_chart(fig_beta, use_container_width=True, key="release_beta")
     
     with col2:
         # Production release status
@@ -1183,7 +1183,7 @@ def show_release_planning(planner: AscentPlannerCalendar):
                     names=prod_status.index,
                     title="Production Release Task Status"
                 )
-                st.plotly_chart(fig_prod, use_container_width=True)
+                st.plotly_chart(fig_prod, use_container_width=True, key="release_prod")
     
     # Release timeline
     st.subheader("Release Timeline")
@@ -1239,7 +1239,7 @@ def show_decision_tracking(planner: AscentPlannerCalendar):
             names=decision_counts.index,
             title="Open Decisions by Owner"
         )
-        st.plotly_chart(fig_decisions, use_container_width=True)
+        st.plotly_chart(fig_decisions, use_container_width=True, key="decision_owners")
     
     # Detailed decision list
     st.subheader("Open Decisions Requiring Action")
@@ -1289,7 +1289,7 @@ def show_issue_management(planner: AscentPlannerCalendar):
                 names=priority_counts.index,
                 title="Issues by Priority Level"
             )
-            st.plotly_chart(fig_priority, use_container_width=True)
+            st.plotly_chart(fig_priority, use_container_width=True, key="issue_priority")
     
     with col2:
         # Status distribution
@@ -1302,7 +1302,7 @@ def show_issue_management(planner: AscentPlannerCalendar):
                 names=status_counts.index,
                 title="Issues by Status"
             )
-            st.plotly_chart(fig_status, use_container_width=True)
+            st.plotly_chart(fig_status, use_container_width=True, key="issue_status")
     
     # High priority issues list
     st.subheader("High Priority Issues")
@@ -1354,7 +1354,7 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
                 names=module_counts.index,
                 title="Migration by Module"
             )
-            st.plotly_chart(fig_modules, use_container_width=True)
+            st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
 def check_authentication():
     """Check if user is authenticated"""
