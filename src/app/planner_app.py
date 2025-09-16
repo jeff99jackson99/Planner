@@ -117,7 +117,8 @@ class AscentPlannerCalendar:
                                 # Clean up the data values
                                 accountable = row.get('Accountable', 'N/A')
                                 if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
-                                    accountable = 'Unassigned'
+                                    # Skip unassigned tasks - don't show in milestones
+                                    continue
                                 
                                 status = row.get('Status1', 'N/A')
                                 if pd.isna(status) or str(status).lower() in ['nan', 'none', '']:
@@ -212,7 +213,8 @@ class AscentPlannerCalendar:
                     
                     # Clean up accountable field
                     if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
-                        accountable = 'Unassigned (Ascent)'
+                        # Skip unassigned tasks - don't show in alerts
+                        continue
                     else:
                         accountable = str(accountable).strip()
                         accountable = self._consolidate_department_name(accountable)
@@ -276,9 +278,9 @@ class AscentPlannerCalendar:
         if any(ascent in name_lower for ascent in ascent_names):
             return True
         
-        # If unassigned, assume it's Ascent's responsibility
+        # Skip unassigned items (handled elsewhere)
         if 'unassigned' in name_lower:
-            return True
+            return False
         
         # Default to including (better to over-alert than miss something)
         return True
@@ -456,10 +458,7 @@ def show_upcoming_milestones(planner: AscentPlannerCalendar):
                     st.write(f"**{item['task_name']}** ({item['date_type']})")
                 
                 with col2:
-                    accountable = item['accountable']
-                    if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
-                        accountable = 'Unassigned'
-                    st.write(f"*{accountable}*")
+                    st.write(f"*{item['accountable']}*")
                 
                 with col3:
                     if item['status'] == 'DONE':
