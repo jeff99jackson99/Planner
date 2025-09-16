@@ -165,10 +165,10 @@ class AscentPlannerCalendar:
         return tasks
     
     def get_department_alerts(self) -> Dict[str, List[str]]:
-        """Get departments that need attention based on current status"""
+        """Get departments that need attention based on current status - Ascent focused"""
         alerts = {}
         
-        # Check open decisions
+        # Check open decisions - these are Ascent decisions
         decisions_df = self.get_open_decisions()
         if not decisions_df.empty:
             for _, row in decisions_df.iterrows():
@@ -176,26 +176,32 @@ class AscentPlannerCalendar:
                     decision_text = str(row.get('Unnamed: 2', 'Unknown Decision'))
                     who = str(row.get('Gayatri Raol ', 'Unknown'))
                     
-                    if who not in alerts:
-                        alerts[who] = []
-                    alerts[who].append(f"Open Decision: {decision_text}")
+                    # Consolidate Matt/Madison variations
+                    who_clean = self._consolidate_department_name(who)
+                    
+                    if who_clean not in alerts:
+                        alerts[who_clean] = []
+                    alerts[who_clean].append(f"Open Decision: {decision_text}")
         
-        # Check high priority hotfixes
+        # Check high priority hotfixes - ONLY if they require Ascent action
         hotfixes_df = self.get_hotfixes_status()
         if not hotfixes_df.empty:
             for _, row in hotfixes_df.iterrows():
                 priority = str(row.get('Unnamed: 3', '')).lower()  # Priority column
                 status = str(row.get('Unnamed: 5', '')).lower()     # Status column
+                summary = str(row.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue'))
                 
-                if 'highest' in priority or ('high' in priority and 'done' not in status):
-                    summary = str(row.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue'))
-                    dept = 'Development Team'
+                # Only include if it's highest priority AND requires Ascent action (not just Sona development)
+                if ('highest' in priority and 'done' not in status and 
+                    self._requires_ascent_action(summary)):
+                    
+                    dept = 'Ascent Product Team'
                     
                     if dept not in alerts:
                         alerts[dept] = []
-                    alerts[dept].append(f"High Priority Issue: {summary}")
+                    alerts[dept].append(f"Critical Issue: {summary}")
         
-        # Check planner tasks with unclear requirements
+        # Check planner tasks with unclear requirements - only Ascent assignees
         planner_df = self.get_planner_tasks()
         if not planner_df.empty:
             unclear_tasks = planner_df[planner_df['Requirement Unclear'] == True]
@@ -206,16 +212,76 @@ class AscentPlannerCalendar:
                     
                     # Clean up accountable field
                     if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
-                        accountable = 'Unassigned Team'
+                        accountable = 'Unassigned (Ascent)'
                     else:
                         accountable = str(accountable).strip()
+                        accountable = self._consolidate_department_name(accountable)
                     
-                    if accountable and accountable != 'Unknown':
+                    # Only include if it's an Ascent person/team
+                    if accountable and accountable != 'Unknown' and self._is_ascent_team(accountable):
                         if accountable not in alerts:
                             alerts[accountable] = []
                         alerts[accountable].append(f"Unclear Requirements: {task_name}")
         
         return alerts
+    
+    def _consolidate_department_name(self, name: str) -> str:
+        """Consolidate similar department/person names"""
+        name_clean = str(name).strip().lower()
+        
+        # Consolidate Matt/Madison variations
+        if any(x in name_clean for x in ['matt', 'madison']):
+            if 'matt' in name_clean and 'madison' in name_clean:
+                return 'Matt & Madison'
+            elif 'matt' in name_clean:
+                return 'Matt'
+            elif 'madison' in name_clean:
+                return 'Madison'
+        
+        # Consolidate development team variations
+        if any(x in name_clean for x in ['upendra', 'naresh', 'shivani', 'dattu']):
+            return 'Development Team (Sona)'
+        
+        # Return cleaned name
+        return str(name).strip()
+    
+    def _requires_ascent_action(self, issue_summary: str) -> bool:
+        """Check if a high priority issue requires Ascent action vs just Sona development"""
+        issue_lower = str(issue_summary).lower()
+        
+        # Issues that require Ascent decision/input
+        ascent_keywords = [
+            'decision', 'approval', 'business rule', 'requirement', 
+            'specification', 'clarification', 'policy', 'process',
+            'user acceptance', 'testing', 'validation', 'sign off'
+        ]
+        
+        return any(keyword in issue_lower for keyword in ascent_keywords)
+    
+    def _is_ascent_team(self, name: str) -> bool:
+        """Check if this is an Ascent team member vs Sona contractor"""
+        name_lower = str(name).lower()
+        
+        # Ascent team members
+        ascent_names = ['matt', 'madison', 'sds', 'ascent']
+        
+        # Sona contractors (exclude from alerts)
+        sona_names = ['upendra', 'naresh', 'shivani', 'dattu', 'sona']
+        
+        # If it's a Sona contractor, don't include
+        if any(sona in name_lower for sona in sona_names):
+            return False
+        
+        # If it's clearly Ascent, include
+        if any(ascent in name_lower for ascent in ascent_names):
+            return True
+        
+        # If unassigned, assume it's Ascent's responsibility
+        if 'unassigned' in name_lower:
+            return True
+        
+        # Default to including (better to over-alert than miss something)
+        return True
     
     def get_upcoming_milestones(self, days_ahead: int = 30) -> List[Dict[str, Any]]:
         """Get upcoming milestones and important dates"""
@@ -279,14 +345,20 @@ def show_todays_overview(planner: AscentPlannerCalendar):
         open_decisions = len(decisions_df) if not decisions_df.empty else 0
         st.metric("Open Decisions", open_decisions)
         
-        # Count high priority items
+        # Count high priority items that require Ascent action
         hotfixes_df = planner.get_hotfixes_status()
         high_priority = 0
         if not hotfixes_df.empty:
             for _, row in hotfixes_df.iterrows():
-                if 'high' in str(row.get('Unnamed: 3', '')).lower():
+                priority = str(row.get('Unnamed: 3', '')).lower()
+                status = str(row.get('Unnamed: 5', '')).lower()
+                summary = str(row.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue'))
+                
+                # Only count if highest priority AND requires Ascent action
+                if ('highest' in priority and 'done' not in status and 
+                    planner._requires_ascent_action(summary)):
                     high_priority += 1
-        st.metric("High Priority Issues", high_priority)
+        st.metric("Critical Issues (Ascent Action)", high_priority)
         
         # Count unclear requirements
         planner_df = planner.get_planner_tasks()
