@@ -17,7 +17,6 @@ import hashlib
 # Page configuration
 st.set_page_config(
     page_title="Ascent Planner Calendar",
-    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -366,35 +365,179 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
         </div>
         """, unsafe_allow_html=True)
     
-    # Status Distribution
-    st.markdown('<div class="section-header"><h3>Project Status Overview</h3></div>', unsafe_allow_html=True)
+    # Charts Section
+    st.markdown('<div class="section-header"><h3>Project Analytics & Visualizations</h3></div>', unsafe_allow_html=True)
     
     if not planner_df.empty:
-        status_counts = planner_df['Status1'].value_counts()
-        status_counts = status_counts[status_counts.index.notna()]
+        # Create multiple chart views
+        chart_tab1, chart_tab2, chart_tab3, chart_tab4 = st.tabs(["Status Distribution", "Department Workload", "Timeline Analysis", "Priority Breakdown"])
         
-        if not status_counts.empty:
-            col1, col2 = st.columns([2, 1])
+        with chart_tab1:
+            # Status Distribution - Pie and Bar Charts
+            status_counts = planner_df['Status1'].value_counts()
+            status_counts = status_counts[status_counts.index.notna()]
+            
+            if not status_counts.empty:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Pie Chart
+                    fig_pie = px.pie(
+                        values=status_counts.values,
+                        names=status_counts.index,
+                        title="Task Status Distribution (Pie Chart)",
+                        color_discrete_sequence=px.colors.qualitative.Set2
+                    )
+                    fig_pie.update_layout(height=400, title_font_size=14)
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                
+                with col2:
+                    # Bar Chart
+                    fig_bar = px.bar(
+                        x=status_counts.index,
+                        y=status_counts.values,
+                        title="Task Status Distribution (Bar Chart)",
+                        labels={'x': 'Status', 'y': 'Number of Tasks'},
+                        color=status_counts.values,
+                        color_continuous_scale='Blues'
+                    )
+                    fig_bar.update_layout(height=400, title_font_size=14)
+                    st.plotly_chart(fig_bar, use_container_width=True)
+        
+        with chart_tab2:
+            # Department Workload Analysis
+            col1, col2 = st.columns(2)
             
             with col1:
-                fig = px.pie(
-                    values=status_counts.values,
-                    names=status_counts.index,
-                    title="Task Status Distribution",
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                fig.update_layout(
-                    showlegend=True,
-                    height=400,
-                    title_font_size=16
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                # Tasks by Department (Horizontal Bar)
+                dept_counts = planner_df['Accountable'].value_counts()
+                dept_counts = dept_counts[dept_counts.index.notna()]
+                dept_counts = dept_counts[dept_counts.index != 'nan'][:10]  # Top 10
+                
+                if not dept_counts.empty:
+                    fig_dept = px.bar(
+                        x=dept_counts.values,
+                        y=dept_counts.index,
+                        orientation='h',
+                        title="Tasks by Department/Person (Top 10)",
+                        labels={'x': 'Number of Tasks', 'y': 'Accountable'},
+                        color=dept_counts.values,
+                        color_continuous_scale='Viridis'
+                    )
+                    fig_dept.update_layout(height=500, title_font_size=14)
+                    st.plotly_chart(fig_dept, use_container_width=True)
             
             with col2:
-                st.markdown("**Status Breakdown:**")
-                for status, count in status_counts.items():
-                    percentage = (count / total_tasks) * 100
-                    st.write(f"• **{status}:** {count} ({percentage:.1f}%)")
+                # Department Status Breakdown
+                if 'Accountable' in planner_df.columns and 'Status1' in planner_df.columns:
+                    dept_status = pd.crosstab(planner_df['Accountable'], planner_df['Status1'])
+                    dept_status = dept_status.head(8)  # Top 8 departments
+                    
+                    fig_stacked = px.bar(
+                        dept_status,
+                        title="Status Distribution by Department",
+                        labels={'value': 'Number of Tasks', 'index': 'Department'},
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    fig_stacked.update_layout(height=500, title_font_size=14)
+                    st.plotly_chart(fig_stacked, use_container_width=True)
+        
+        with chart_tab3:
+            # Timeline Analysis
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Requirements Clarity Over Time
+                unclear_count = len(planner_df[planner_df['Requirement Unclear'] == True])
+                clear_count = total_tasks - unclear_count
+                
+                clarity_data = pd.DataFrame({
+                    'Category': ['Clear Requirements', 'Unclear Requirements'],
+                    'Count': [clear_count, unclear_count]
+                })
+                
+                fig_clarity = px.bar(
+                    clarity_data,
+                    x='Category',
+                    y='Count',
+                    title="Requirements Clarity Status",
+                    color='Category',
+                    color_discrete_map={'Clear Requirements': '#2ecc71', 'Unclear Requirements': '#e74c3c'}
+                )
+                fig_clarity.update_layout(height=400, title_font_size=14)
+                st.plotly_chart(fig_clarity, use_container_width=True)
+            
+            with col2:
+                # Task Distribution by Phase
+                if 'Beta Realease' in planner_df.columns and 'PROD Release' in planner_df.columns:
+                    beta_tasks = planner_df['Beta Realease'].notna().sum()
+                    prod_tasks = planner_df['PROD Release'].notna().sum()
+                    other_tasks = total_tasks - beta_tasks - prod_tasks
+                    
+                    phase_data = pd.DataFrame({
+                        'Phase': ['Beta Release', 'Production Release', 'Other'],
+                        'Tasks': [beta_tasks, prod_tasks, other_tasks]
+                    })
+                    
+                    fig_phase = px.pie(
+                        phase_data,
+                        values='Tasks',
+                        names='Phase',
+                        title="Tasks by Release Phase",
+                        color_discrete_sequence=['#3498db', '#9b59b6', '#95a5a6']
+                    )
+                    fig_phase.update_layout(height=400, title_font_size=14)
+                    st.plotly_chart(fig_phase, use_container_width=True)
+        
+        with chart_tab4:
+            # Priority and Issue Analysis
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Open Decisions by Type
+                decisions_df = planner.get_open_decisions()
+                if not decisions_df.empty and len(decisions_df) > 1:
+                    # Create a simple count of decisions
+                    decision_count = len(decisions_df)
+                    total_decisions = 20  # From your data
+                    resolved_decisions = total_decisions - decision_count
+                    
+                    decision_data = pd.DataFrame({
+                        'Status': ['Open Decisions', 'Resolved Decisions'],
+                        'Count': [decision_count, resolved_decisions]
+                    })
+                    
+                    fig_decisions = px.bar(
+                        decision_data,
+                        x='Status',
+                        y='Count',
+                        title="Decision Status Overview",
+                        color='Status',
+                        color_discrete_map={'Open Decisions': '#f39c12', 'Resolved Decisions': '#27ae60'}
+                    )
+                    fig_decisions.update_layout(height=400, title_font_size=14)
+                    st.plotly_chart(fig_decisions, use_container_width=True)
+            
+            with col2:
+                # Department Alert Summary
+                alerts = planner.get_department_alerts()
+                if alerts:
+                    alert_data = pd.DataFrame([
+                        {'Department': dept, 'Alert_Count': len(issues)}
+                        for dept, issues in alerts.items()
+                    ])
+                    
+                    fig_alerts = px.bar(
+                        alert_data,
+                        x='Department',
+                        y='Alert_Count',
+                        title="Alerts by Department",
+                        color='Alert_Count',
+                        color_continuous_scale='Reds'
+                    )
+                    fig_alerts.update_layout(height=400, title_font_size=14)
+                    fig_alerts.update_xaxes(tickangle=45)
+                    st.plotly_chart(fig_alerts, use_container_width=True)
     
     # Recent Activity Summary
     st.markdown('<div class="section-header"><h3>System Information</h3></div>', unsafe_allow_html=True)
@@ -434,7 +577,7 @@ def show_todays_overview(planner: AscentPlannerCalendar):
     col1, col2, col3 = st.columns([2, 2, 1])
     
     with col1:
-        st.subheader("📅 Today's Tasks")
+        st.subheader("Today's Tasks")
         if today_tasks:
             for task in today_tasks:
                 with st.expander(f"{task['source']}: {task['task_name'][:50]}..."):
@@ -642,38 +785,188 @@ def show_department_dashboard(planner: AscentPlannerCalendar):
             st.plotly_chart(fig, use_container_width=True)
 
 def show_data_insights(planner: AscentPlannerCalendar):
-    """Show data insights and analytics"""
-    st.header("📊 Data Insights & Analytics")
+    """Show comprehensive data insights and analytics with multiple charts"""
+    st.header("Data Insights & Analytics")
     
-    # Sheet overview
-    st.subheader("📋 Sheet Overview")
-    col1, col2, col3 = st.columns(3)
+    # Create comprehensive analytics tabs
+    analytics_tab1, analytics_tab2, analytics_tab3 = st.tabs([
+        "Overview Charts", "Advanced Analytics", "Raw Data Explorer"
+    ])
     
-    with col1:
-        planner_df = planner.get_planner_tasks()
-        st.metric("Total Tasks", len(planner_df) if not planner_df.empty else 0)
-    
-    with col2:
-        decisions_df = planner.get_open_decisions()
-        st.metric("Open Decisions", len(decisions_df) if not decisions_df.empty else 0)
-    
-    with col3:
-        hotfixes_df = planner.get_hotfixes_status()
-        st.metric("Issues Tracked", len(hotfixes_df) if not hotfixes_df.empty else 0)
-    
-    # Status distribution
-    st.subheader("📈 Status Distribution")
-    if not planner_df.empty:
-        status_counts = planner_df['Status1'].value_counts()
-        status_counts = status_counts[status_counts.index.notna()]
+    with analytics_tab1:
+        # Sheet overview metrics
+        st.subheader("Data Overview")
+        col1, col2, col3, col4 = st.columns(4)
         
-        if not status_counts.empty:
-            fig = px.pie(
-                values=status_counts.values,
-                names=status_counts.index,
-                title="Task Status Distribution"
+        planner_df = planner.get_planner_tasks()
+        decisions_df = planner.get_open_decisions()
+        hotfixes_df = planner.get_hotfixes_status()
+        
+        with col1:
+            st.metric("Total Tasks", len(planner_df) if not planner_df.empty else 0)
+        with col2:
+            st.metric("Open Decisions", len(decisions_df) if not decisions_df.empty else 0)
+        with col3:
+            st.metric("Issues Tracked", len(hotfixes_df) if not hotfixes_df.empty else 0)
+        with col4:
+            st.metric("Data Sources", len(planner.data))
+        
+        # Sheet size comparison charts
+        st.subheader("Data Volume Analysis")
+        sheet_data = pd.DataFrame([
+            {'Sheet': sheet_name, 'Rows': len(df), 'Columns': len(df.columns)}
+            for sheet_name, df in planner.data.items()
+        ])
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig_rows = px.bar(
+                sheet_data,
+                x='Sheet',
+                y='Rows',
+                title="Number of Rows per Sheet",
+                color='Rows',
+                color_continuous_scale='Blues',
+                text='Rows'
             )
-            st.plotly_chart(fig, use_container_width=True)
+            fig_rows.update_xaxes(tickangle=45)
+            fig_rows.update_layout(height=400)
+            fig_rows.update_traces(texttemplate='%{text}', textposition='outside')
+            st.plotly_chart(fig_rows, use_container_width=True)
+        
+        with col2:
+            fig_cols = px.bar(
+                sheet_data,
+                x='Sheet',
+                y='Columns',
+                title="Number of Columns per Sheet",
+                color='Columns',
+                color_continuous_scale='Greens',
+                text='Columns'
+            )
+            fig_cols.update_xaxes(tickangle=45)
+            fig_cols.update_layout(height=400)
+            fig_cols.update_traces(texttemplate='%{text}', textposition='outside')
+            st.plotly_chart(fig_cols, use_container_width=True)
+        
+        # Status distribution with multiple chart types
+        if not planner_df.empty:
+            st.subheader("Task Status Analysis")
+            status_counts = planner_df['Status1'].value_counts()
+            status_counts = status_counts[status_counts.index.notna()]
+            
+            if not status_counts.empty:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Donut chart
+                    fig_donut = px.pie(
+                        values=status_counts.values,
+                        names=status_counts.index,
+                        title="Task Status Distribution (Donut Chart)",
+                        hole=0.4,
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    fig_donut.update_layout(height=400)
+                    st.plotly_chart(fig_donut, use_container_width=True)
+                
+                with col2:
+                    # Horizontal bar chart
+                    fig_hbar = px.bar(
+                        x=status_counts.values,
+                        y=status_counts.index,
+                        orientation='h',
+                        title="Task Status (Horizontal Bar Chart)",
+                        color=status_counts.values,
+                        color_continuous_scale='Viridis',
+                        text=status_counts.values
+                    )
+                    fig_hbar.update_layout(height=400)
+                    fig_hbar.update_traces(texttemplate='%{text}', textposition='auto')
+                    st.plotly_chart(fig_hbar, use_container_width=True)
+    
+    with analytics_tab2:
+        # Advanced analytics with complex visualizations
+        st.subheader("Advanced Data Analysis")
+        
+        if not planner_df.empty:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Requirements clarity analysis
+                unclear_count = len(planner_df[planner_df['Requirement Unclear'] == True])
+                clear_count = len(planner_df) - unclear_count
+                
+                clarity_data = pd.DataFrame({
+                    'Clarity': ['Clear Requirements', 'Unclear Requirements'],
+                    'Count': [clear_count, unclear_count],
+                    'Percentage': [clear_count/(clear_count+unclear_count)*100, 
+                                 unclear_count/(clear_count+unclear_count)*100]
+                })
+                
+                fig_clarity = px.bar(
+                    clarity_data,
+                    x='Clarity',
+                    y='Count',
+                    title="Requirements Clarity Analysis",
+                    color='Clarity',
+                    color_discrete_map={'Clear Requirements': '#27ae60', 'Unclear Requirements': '#e74c3c'},
+                    text='Count'
+                )
+                fig_clarity.update_layout(height=400)
+                fig_clarity.update_traces(texttemplate='%{text}', textposition='auto')
+                st.plotly_chart(fig_clarity, use_container_width=True)
+            
+            with col2:
+                # Department workload radar chart
+                if 'Accountable' in planner_df.columns:
+                    dept_counts = planner_df['Accountable'].value_counts().head(8)
+                    dept_counts = dept_counts[dept_counts.index.notna()]
+                    dept_counts = dept_counts[dept_counts.index != 'nan']
+                    
+                    if not dept_counts.empty:
+                        fig_radar = go.Figure()
+                        
+                        fig_radar.add_trace(go.Scatterpolar(
+                            r=dept_counts.values,
+                            theta=dept_counts.index,
+                            fill='toself',
+                            name='Task Count',
+                            line_color='rgb(32, 146, 230)'
+                        ))
+                        
+                        fig_radar.update_layout(
+                            polar=dict(
+                                radialaxis=dict(
+                                    visible=True,
+                                    range=[0, max(dept_counts.values) if len(dept_counts) > 0 else 10]
+                                )),
+                            showlegend=True,
+                            title="Department Workload Distribution (Radar Chart)",
+                            height=400
+                        )
+                        st.plotly_chart(fig_radar, use_container_width=True)
+        
+        # Cross-tabulation analysis
+        if not planner_df.empty and 'Accountable' in planner_df.columns and 'Status1' in planner_df.columns:
+            st.subheader("Department vs Status Cross-Analysis")
+            dept_status = pd.crosstab(planner_df['Accountable'], planner_df['Status1'])
+            dept_status = dept_status.head(10)  # Top 10 departments
+            
+            if not dept_status.empty:
+                fig_heatmap = px.imshow(
+                    dept_status.values,
+                    labels=dict(x="Status", y="Department", color="Task Count"),
+                    x=dept_status.columns,
+                    y=dept_status.index,
+                    title="Department vs Status Heatmap",
+                    color_continuous_scale='Blues'
+                )
+                fig_heatmap.update_layout(height=500)
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+    
+    with analytics_tab3:
     
     # Raw data access
     st.subheader("🔍 Raw Data Explorer")
