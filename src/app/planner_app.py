@@ -114,13 +114,26 @@ class AscentPlannerCalendar:
                         try:
                             event_date = pd.to_datetime(row[date_col], errors='coerce')
                             if pd.notna(event_date) and event_date.date() == target_date:
+                                # Clean up the data values
+                                accountable = row.get('Accountable', 'N/A')
+                                if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+                                    accountable = 'Unassigned'
+                                
+                                status = row.get('Status1', 'N/A')
+                                if pd.isna(status) or str(status).lower() in ['nan', 'none', '']:
+                                    status = 'Not Set'
+                                
+                                task_name = row.get('Task Name', 'Unknown Task')
+                                if pd.isna(task_name) or str(task_name).lower() in ['nan', 'none', '']:
+                                    task_name = 'Unnamed Task'
+                                
                                 task = {
                                     'source': 'Planner',
                                     'date': event_date.date(),
                                     'date_type': date_col,
-                                    'task_name': str(row.get('Task Name', 'Unknown Task')),
-                                    'accountable': str(row.get('Accountable', 'N/A')),
-                                    'status': str(row.get('Status1', 'N/A')),
+                                    'task_name': str(task_name).strip(),
+                                    'accountable': str(accountable).strip(),
+                                    'status': str(status).strip(),
                                     'demo_training': str(row.get(' Demo/Training', 'N/A')),
                                     'requirement_unclear': row.get('Requirement Unclear', False)
                                 }
@@ -189,9 +202,15 @@ class AscentPlannerCalendar:
             if not unclear_tasks.empty:
                 for _, row in unclear_tasks.iterrows():
                     task_name = str(row.get('Task Name', 'Unknown Task'))
-                    accountable = str(row.get('Accountable', 'Unknown'))
+                    accountable = row.get('Accountable', 'Unknown')
                     
-                    if pd.notna(accountable) and accountable != 'nan':
+                    # Clean up accountable field
+                    if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+                        accountable = 'Unassigned Team'
+                    else:
+                        accountable = str(accountable).strip()
+                    
+                    if accountable and accountable != 'Unknown':
                         if accountable not in alerts:
                             alerts[accountable] = []
                         alerts[accountable].append(f"Unclear Requirements: {task_name}")
@@ -238,8 +257,13 @@ def show_todays_overview(planner: AscentPlannerCalendar):
         alerts = planner.get_department_alerts()
         if alerts:
             for dept, issues in alerts.items():
-                if dept != 'nan' and dept != 'N/A':
-                    st.warning(f"**{dept}**")
+                # Clean up department names for display
+                if pd.isna(dept) or str(dept).lower() in ['nan', 'none', '', 'n/a']:
+                    dept = 'Unassigned Team'
+                
+                dept_display = str(dept).strip()
+                if dept_display and dept_display != 'Unknown':
+                    st.warning(f"**{dept_display}**")
                     for issue in issues[:3]:  # Show first 3 issues
                         st.write(f"• {issue}")
                     if len(issues) > 3:
@@ -360,7 +384,10 @@ def show_upcoming_milestones(planner: AscentPlannerCalendar):
                     st.write(f"**{item['task_name']}** ({item['date_type']})")
                 
                 with col2:
-                    st.write(f"*{item['accountable']}*")
+                    accountable = item['accountable']
+                    if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+                        accountable = 'Unassigned'
+                    st.write(f"*{accountable}*")
                 
                 with col3:
                     if item['status'] == 'DONE':
