@@ -840,21 +840,19 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     ]
                 })
                 
-                fig_completion = px.bar(
+                fig_completion = px.pie(
                     completion_data,
-                    x='Status',
-                    y='Percentage',
+                    values='Percentage',
+                    names='Status',
                     title="Project Progress",
-                    color='Status',
                     color_discrete_map={
                         'Completed': '#27ae60',
                         'In Progress': '#f39c12', 
                         'Not Started': '#e74c3c'
-                    },
-                    text=completion_data['Percentage'].round(1)
+                    }
                 )
-                fig_completion.update_layout(height=400, yaxis_title="Percentage")
-                fig_completion.update_traces(texttemplate='%{text}%', textposition='auto')
+                fig_completion.update_layout(height=400)
+                fig_completion.update_traces(texttemplate='%{label}: %{percent}', textposition='auto')
                 st.plotly_chart(fig_completion, use_container_width=True)
         
         with col2:
@@ -867,18 +865,14 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     risk_by_dept = risk_by_dept[risk_by_dept.index != 'nan']
                     
                     if not risk_by_dept.empty:
-                        fig_risk = px.bar(
-                            x=risk_by_dept.values,
-                            y=risk_by_dept.index,
-                            orientation='h',
-                            title="Departments with Blocking Issues",
-                            labels={'x': 'Blocked Tasks', 'y': 'Department'},
-                            color=risk_by_dept.values,
-                            color_continuous_scale='Reds',
-                            text=risk_by_dept.values
+                        fig_risk = px.pie(
+                            values=risk_by_dept.values,
+                            names=risk_by_dept.index,
+                            title="Tasks Waiting for Requirements",
+                            color_discrete_sequence=px.colors.sequential.Reds_r
                         )
                         fig_risk.update_layout(height=400)
-                        fig_risk.update_traces(texttemplate='%{text}', textposition='auto')
+                        fig_risk.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
                         st.plotly_chart(fig_risk, use_container_width=True)
         
         # Actionable Business Insights
@@ -900,18 +894,14 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 if decision_owners:
                     decision_counts = pd.Series(decision_owners).value_counts()
                     
-                    fig_decisions = px.bar(
-                        x=decision_counts.index,
-                        y=decision_counts.values,
+                    fig_decisions = px.pie(
+                        values=decision_counts.values,
+                        names=decision_counts.index,
                         title="Pending Decisions by Owner",
-                        labels={'x': 'Decision Maker', 'y': 'Pending Decisions'},
-                        color=decision_counts.values,
-                        color_continuous_scale='Oranges',
-                        text=decision_counts.values
+                        color_discrete_sequence=px.colors.sequential.Oranges_r
                     )
                     fig_decisions.update_layout(height=400)
-                    fig_decisions.update_traces(texttemplate='%{text}', textposition='auto')
-                    fig_decisions.update_xaxes(tickangle=45)
+                    fig_decisions.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
                     st.plotly_chart(fig_decisions, use_container_width=True)
         
         with col2:
@@ -932,17 +922,14 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     
                     colors = [priority_colors.get(str(priority), '#95a5a6') for priority in priority_counts.index]
                     
-                    fig_priority = px.bar(
-                        x=priority_counts.index,
-                        y=priority_counts.values,
+                    fig_priority = px.pie(
+                        values=priority_counts.values,
+                        names=priority_counts.index,
                         title="Issues by Priority",
-                        labels={'x': 'Priority', 'y': 'Issues'},
-                        color=priority_counts.index,
-                        color_discrete_map=priority_colors,
-                        text=priority_counts.values
+                        color_discrete_map=priority_colors
                     )
                     fig_priority.update_layout(height=400)
-                    fig_priority.update_traces(texttemplate='%{text}', textposition='auto')
+                    fig_priority.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
                     st.plotly_chart(fig_priority, use_container_width=True)
     
     with analytics_tab2:
@@ -976,17 +963,15 @@ def show_data_insights(planner: AscentPlannerCalendar):
                     ]
                 })
                 
-                fig_release = px.bar(
+                fig_release = px.pie(
                     release_data,
-                    x='Release',
-                    y='Completion_Rate',
+                    values='Completion_Rate',
+                    names='Release',
                     title="Release Readiness",
-                    color='Completion_Rate',
-                    color_continuous_scale='RdYlGn',
-                    text=release_data['Completion_Rate'].round(1)
+                    color_discrete_sequence=['#3498db', '#9b59b6']
                 )
-                fig_release.update_layout(height=400, yaxis_title="Ready (%)")
-                fig_release.update_traces(texttemplate='%{text}%', textposition='auto')
+                fig_release.update_layout(height=400)
+                fig_release.update_traces(texttemplate='%{label}: %{value:.1f}%', textposition='auto')
                 st.plotly_chart(fig_release, use_container_width=True)
         
         with col2:
@@ -999,18 +984,14 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 bottleneck_analysis = bottleneck_analysis[bottleneck_analysis.index != 'nan']
                 
                 if not bottleneck_analysis.empty:
-                    fig_bottleneck = px.bar(
-                        x=bottleneck_analysis.values,
-                        y=bottleneck_analysis.index,
-                        orientation='h',
-                        title="Department Bottlenecks",
-                        labels={'x': 'Blocked Tasks', 'y': 'Department'},
-                        color=bottleneck_analysis.values,
-                        color_continuous_scale='Reds',
-                        text=bottleneck_analysis.values
+                    fig_bottleneck = px.pie(
+                        values=bottleneck_analysis.values,
+                        names=bottleneck_analysis.index,
+                        title="Tasks Waiting for Requirements",
+                        color_discrete_sequence=px.colors.sequential.Reds_r
                     )
                     fig_bottleneck.update_layout(height=400)
-                    fig_bottleneck.update_traces(texttemplate='%{text}', textposition='auto')
+                    fig_bottleneck.update_traces(texttemplate='%{label}: %{value}', textposition='auto')
                     st.plotly_chart(fig_bottleneck, use_container_width=True)
         
         # Critical Path Analysis
@@ -1079,6 +1060,301 @@ def show_data_insights(planner: AscentPlannerCalendar):
                 st.dataframe(filtered_df, use_container_width=True)
             else:
                 st.dataframe(df, use_container_width=True)
+
+def show_requirements_management(planner: AscentPlannerCalendar):
+    """Manage unclear requirements and requirement clarification"""
+    st.header("Requirements Management")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Requirements overview
+    unclear_tasks = planner_df[planner_df['Requirement Unclear'] == True]
+    clear_tasks = planner_df[planner_df['Requirement Unclear'] == False]
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Clear Requirements", len(clear_tasks))
+    with col2:
+        st.metric("Unclear Requirements", len(unclear_tasks))
+    with col3:
+        clarity_rate = (len(clear_tasks) / len(planner_df)) * 100
+        st.metric("Clarity Rate", f"{clarity_rate:.1f}%")
+    
+    # Charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Requirements by department
+        if not unclear_tasks.empty:
+            unclear_by_dept = unclear_tasks['Accountable'].value_counts().head(8)
+            unclear_by_dept = unclear_by_dept[unclear_by_dept.index.notna()]
+            unclear_by_dept = unclear_by_dept[unclear_by_dept.index != 'nan']
+            
+            if not unclear_by_dept.empty:
+                fig_unclear = px.pie(
+                    values=unclear_by_dept.values,
+                    names=unclear_by_dept.index,
+                    title="Unclear Requirements by Department"
+                )
+                st.plotly_chart(fig_unclear, use_container_width=True)
+    
+    with col2:
+        # Overall clarity status
+        clarity_data = pd.DataFrame({
+            'Status': ['Clear', 'Unclear'],
+            'Count': [len(clear_tasks), len(unclear_tasks)]
+        })
+        
+        fig_clarity = px.pie(
+            clarity_data,
+            values='Count',
+            names='Status',
+            title="Overall Requirements Status",
+            color_discrete_map={'Clear': '#27ae60', 'Unclear': '#e74c3c'}
+        )
+        st.plotly_chart(fig_clarity, use_container_width=True)
+    
+    # Detailed unclear requirements list
+    st.subheader("Tasks Needing Requirement Clarification")
+    if not unclear_tasks.empty:
+        for _, task in unclear_tasks.iterrows():
+            task_name = str(task.get('Task Name', 'Unknown'))
+            accountable = str(task.get('Accountable', 'Unassigned'))
+            status = str(task.get('Status1', 'Not Set'))
+            
+            if pd.notna(accountable) and accountable != 'nan':
+                st.write(f"**{task_name}** - Assigned to: {accountable} - Status: {status}")
+            else:
+                st.write(f"**{task_name}** - UNASSIGNED - Status: {status}")
+
+def show_release_planning(planner: AscentPlannerCalendar):
+    """Manage release planning for Beta and Production"""
+    st.header("Release Planning")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Release metrics
+    beta_tasks = planner_df['Beta Realease'].notna().sum()
+    prod_tasks = planner_df['PROD Release'].notna().sum()
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Beta Release Tasks", beta_tasks)
+    with col2:
+        st.metric("Production Tasks", prod_tasks)
+    with col3:
+        total_release_tasks = beta_tasks + prod_tasks
+        st.metric("Total Release Tasks", total_release_tasks)
+    
+    # Release readiness analysis
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Beta release status
+        beta_df = planner_df[planner_df['Beta Realease'].notna()]
+        if not beta_df.empty:
+            beta_status = beta_df['Status1'].value_counts()
+            beta_status = beta_status[beta_status.index.notna()]
+            
+            if not beta_status.empty:
+                fig_beta = px.pie(
+                    values=beta_status.values,
+                    names=beta_status.index,
+                    title="Beta Release Task Status"
+                )
+                st.plotly_chart(fig_beta, use_container_width=True)
+    
+    with col2:
+        # Production release status
+        prod_df = planner_df[planner_df['PROD Release'].notna()]
+        if not prod_df.empty:
+            prod_status = prod_df['Status1'].value_counts()
+            prod_status = prod_status[prod_status.index.notna()]
+            
+            if not prod_status.empty:
+                fig_prod = px.pie(
+                    values=prod_status.values,
+                    names=prod_status.index,
+                    title="Production Release Task Status"
+                )
+                st.plotly_chart(fig_prod, use_container_width=True)
+    
+    # Release timeline
+    st.subheader("Release Timeline")
+    
+    # Show beta tasks with dates
+    if not beta_df.empty:
+        st.write("**Beta Release Tasks:**")
+        for _, task in beta_df.iterrows():
+            task_name = str(task.get('Task Name', 'Unknown'))
+            beta_date = task.get('Beta Realease')
+            status = str(task.get('Status1', 'Not Set'))
+            accountable = str(task.get('Accountable', 'Unassigned'))
+            
+            if pd.notna(beta_date):
+                st.write(f"• **{task_name}** - {beta_date} - {status} - {accountable}")
+
+def show_decision_tracking(planner: AscentPlannerCalendar):
+    """Track open decisions and next steps"""
+    st.header("Decision Tracking")
+    
+    decisions_df = planner.get_open_decisions()
+    if decisions_df.empty:
+        st.error("No decision data available")
+        return
+    
+    # Decision metrics
+    open_decisions = 0
+    for _, row in decisions_df.iterrows():
+        if 'Open' in str(row.get('Unnamed: 3', '')):
+            open_decisions += 1
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Decisions", len(decisions_df))
+    with col2:
+        st.metric("Open Decisions", open_decisions)
+    with col3:
+        closed_decisions = len(decisions_df) - open_decisions
+        st.metric("Resolved Decisions", closed_decisions)
+    
+    # Decision ownership chart
+    decision_owners = []
+    for _, row in decisions_df.iterrows():
+        if 'Open' in str(row.get('Unnamed: 3', '')):
+            who = str(row.get('Gayatri Raol ', 'Unknown'))
+            decision_owners.append(who)
+    
+    if decision_owners:
+        decision_counts = pd.Series(decision_owners).value_counts()
+        
+        fig_decisions = px.pie(
+            values=decision_counts.values,
+            names=decision_counts.index,
+            title="Open Decisions by Owner"
+        )
+        st.plotly_chart(fig_decisions, use_container_width=True)
+    
+    # Detailed decision list
+    st.subheader("Open Decisions Requiring Action")
+    for _, row in decisions_df.iterrows():
+        if 'Open' in str(row.get('Unnamed: 3', '')):
+            decision = str(row.get('Unnamed: 2', 'Unknown Decision'))
+            who = str(row.get('Gayatri Raol ', 'Unknown'))
+            
+            with st.expander(f"Decision Owner: {who}"):
+                st.write(decision)
+
+def show_issue_management(planner: AscentPlannerCalendar):
+    """Manage hotfixes, bugs, and enhancement requests"""
+    st.header("Issue Management")
+    
+    hotfixes_df = planner.get_hotfixes_status()
+    if hotfixes_df.empty:
+        st.error("No issue data available")
+        return
+    
+    # Issue metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    priority_counts = hotfixes_df['Unnamed: 3'].value_counts()
+    
+    with col1:
+        st.metric("Total Issues", len(hotfixes_df))
+    with col2:
+        highest_count = priority_counts.get('Highest', 0)
+        st.metric("Highest Priority", highest_count)
+    with col3:
+        high_count = priority_counts.get('High', 0)
+        st.metric("High Priority", high_count)
+    with col4:
+        done_count = hotfixes_df['Unnamed: 5'].value_counts().get('DONE', 0)
+        st.metric("Completed", done_count)
+    
+    # Charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Priority distribution
+        priority_counts = priority_counts[priority_counts.index.notna()]
+        if not priority_counts.empty:
+            fig_priority = px.pie(
+                values=priority_counts.values,
+                names=priority_counts.index,
+                title="Issues by Priority Level"
+            )
+            st.plotly_chart(fig_priority, use_container_width=True)
+    
+    with col2:
+        # Status distribution
+        status_counts = hotfixes_df['Unnamed: 5'].value_counts()
+        status_counts = status_counts[status_counts.index.notna()]
+        
+        if not status_counts.empty:
+            fig_status = px.pie(
+                values=status_counts.values,
+                names=status_counts.index,
+                title="Issues by Status"
+            )
+            st.plotly_chart(fig_status, use_container_width=True)
+    
+    # High priority issues list
+    st.subheader("High Priority Issues")
+    for _, issue in hotfixes_df.iterrows():
+        priority = str(issue.get('Unnamed: 3', ''))
+        if priority in ['Highest', 'High']:
+            summary = str(issue.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown'))
+            status = str(issue.get('Unnamed: 5', 'Unknown'))
+            st.write(f"**{priority}**: {summary} - Status: {status}")
+
+def show_data_migration_progress(planner: AscentPlannerCalendar):
+    """Track data migration daily progress"""
+    st.header("Data Migration Progress")
+    
+    migration_df = planner.get_data_migration_status()
+    if migration_df.empty:
+        st.error("No migration data available")
+        return
+    
+    # Find date columns (they're the column headers)
+    date_columns = [col for col in migration_df.columns if isinstance(col, pd.Timestamp)]
+    
+    if date_columns:
+        st.metric("Days Tracked", len(date_columns))
+        
+        # Recent migration activity
+        recent_dates = sorted(date_columns, reverse=True)[:7]  # Last 7 days
+        
+        st.subheader("Recent Migration Activity (Last 7 Days)")
+        for date_col in recent_dates:
+            date_str = date_col.strftime('%Y-%m-%d')
+            activities = migration_df[date_col].dropna()
+            
+            if not activities.empty:
+                with st.expander(f"{date_str} - {len(activities)} activities"):
+                    for activity in activities:
+                        if pd.notna(activity):
+                            st.write(f"• {activity}")
+    
+    # Migration modules overview
+    if 'Module' in migration_df.index:
+        modules = migration_df.loc['Module'].dropna()
+        if not modules.empty:
+            st.subheader("Migration Modules")
+            module_counts = pd.Series(modules).value_counts()
+            
+            fig_modules = px.pie(
+                values=module_counts.values,
+                names=module_counts.index,
+                title="Migration by Module"
+            )
+            st.plotly_chart(fig_modules, use_container_width=True)
 
 def check_authentication():
     """Check if user is authenticated"""
@@ -1282,9 +1558,12 @@ def main():
         "Select View",
         [
             "Executive Dashboard",
-            "Calendar View", 
-            "Upcoming Milestones",
-            "Department Dashboard",
+            "Requirements Management",
+            "Release Planning",
+            "Decision Tracking", 
+            "Issue Management",
+            "Data Migration Progress",
+            "Calendar View",
             "Data Analytics"
         ]
     )
@@ -1294,15 +1573,21 @@ def main():
         planner.load_data()
         st.rerun()
     
-    # Main content area - consolidated dashboard
+    # Main content area - task management focused views
     if view_mode == "Executive Dashboard":
         show_executive_dashboard(planner)
+    elif view_mode == "Requirements Management":
+        show_requirements_management(planner)
+    elif view_mode == "Release Planning":
+        show_release_planning(planner)
+    elif view_mode == "Decision Tracking":
+        show_decision_tracking(planner)
+    elif view_mode == "Issue Management":
+        show_issue_management(planner)
+    elif view_mode == "Data Migration Progress":
+        show_data_migration_progress(planner)
     elif view_mode == "Calendar View":
         show_calendar_view(planner)
-    elif view_mode == "Upcoming Milestones":
-        show_upcoming_milestones(planner)
-    elif view_mode == "Department Dashboard":
-        show_department_dashboard(planner)
     elif view_mode == "Data Analytics":
         show_data_insights(planner)
     else:
