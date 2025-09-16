@@ -12,11 +12,12 @@ import os
 from typing import Dict, List, Any, Optional
 import calendar
 import numpy as np
+import hashlib
 
 # Page configuration
 st.set_page_config(
     page_title="Ascent Planner Calendar",
-    page_icon="📅",
+    page_icon="🏢",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -300,7 +301,7 @@ class AscentPlannerCalendar:
 
 def show_todays_overview(planner: AscentPlannerCalendar):
     """Show today's overview with all relevant information"""
-    st.header(f"📋 Today's Overview - {planner.current_date.strftime('%A, %B %d, %Y')}")
+    st.header(f"Today's Overview - {planner.current_date.strftime('%A, %B %d, %Y')}")
     
     # Today's tasks
     today_tasks = planner.get_tasks_for_date(planner.current_date)
@@ -573,10 +574,68 @@ def show_data_insights(planner: AscentPlannerCalendar):
         else:
             st.dataframe(df, use_container_width=True)
 
+def check_authentication():
+    """Check if user is authenticated"""
+    return st.session_state.get('authenticated', False)
+
+def login_page():
+    """Display login page"""
+    # Add some spacing
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    # Center the content
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col2:
+        st.markdown("""
+        <div style='text-align: center'>
+            <h1>Ascent Planner Calendar</h1>
+            <p><strong>Project Tracking & Milestone Management</strong></p>
+            <hr>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("### Secure Login Required")
+        
+        with st.form("login_form"):
+            username = st.text_input("Username", placeholder="Enter username")
+            password = st.text_input("Password", type="password", placeholder="Enter password")
+            
+            col_a, col_b, col_c = st.columns([1, 1, 1])
+            with col_b:
+                submit_button = st.form_submit_button("Login", use_container_width=True)
+            
+            if submit_button:
+                if username == "ascent1" and password == "Planner1234":
+                    st.session_state['authenticated'] = True
+                    st.session_state['username'] = username
+                    st.success("Access granted! Redirecting...")
+                    st.rerun()
+                else:
+                    st.error("Invalid credentials. Please try again.")
+        
+        st.markdown("---")
+        st.markdown("""
+        <div style='text-align: center; color: #666; font-size: 0.8em'>
+            <p>Authorized personnel only</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+def logout():
+    """Logout function"""
+    st.session_state['authenticated'] = False
+    st.session_state['username'] = None
+    st.rerun()
+
 def main():
     """Main application function"""
-    st.title("📅 Ascent Planner Calendar")
-    st.markdown("*Comprehensive project tracking and calendar management*")
+    # Check authentication first
+    if not check_authentication():
+        login_page()
+        return
+    
+    st.title("Ascent Planner Calendar")
+    st.markdown("**Project Tracking & Milestone Management**")
     
     try:
         # Initialize the planner - handle both local and cloud deployment
@@ -586,90 +645,97 @@ def main():
         if not os.path.exists(excel_path):
             excel_path = "Ascent Planner Sep, 16 2025.xlsx"
         
-        # Debug info
-        st.sidebar.write(f"**Debug Info:**")
-        st.sidebar.write(f"Excel path: {excel_path}")
-        st.sidebar.write(f"File exists: {os.path.exists(excel_path)}")
-        st.sidebar.write(f"Current dir: {os.getcwd()}")
+        # System info (only show in development)
+        if os.getenv('STREAMLIT_ENV') != 'production':
+            with st.sidebar.expander("System Information"):
+                st.write(f"Excel path: {excel_path}")
+                st.write(f"File exists: {os.path.exists(excel_path)}")
+                st.write(f"Current dir: {os.getcwd()}")
         
         if not os.path.exists(excel_path):
-            st.error("❌ Excel file not found!")
+            st.error("Data file not found!")
             st.write("**Looking for file:**", excel_path)
-            st.write("**Files in current directory:**")
             try:
                 files = [f for f in os.listdir(".") if f.endswith(('.xlsx', '.xls'))]
                 if files:
-                    st.write("Excel files found:")
+                    st.write("Available Excel files:")
                     for f in files:
                         st.write(f"- {f}")
                     # Try the first Excel file found
                     excel_path = files[0]
-                    st.info(f"Trying to use: {excel_path}")
+                    st.info(f"Using: {excel_path}")
                 else:
                     st.write("No Excel files found in current directory")
                     st.stop()
             except Exception as e:
-                st.error(f"Error listing files: {e}")
+                st.error(f"Error accessing files: {e}")
                 st.stop()
         
         planner = AscentPlannerCalendar(excel_path)
         
         if not planner.data:
-            st.error("❌ No data loaded. Please check the Excel file.")
+            st.error("No data loaded. Please check the Excel file.")
             st.stop()
             
     except Exception as e:
-        st.error(f"❌ Application Error: {e}")
-        st.write("**Full error details:**")
-        st.code(str(e))
-        import traceback
-        st.code(traceback.format_exc())
+        st.error(f"Application Error: {e}")
+        with st.expander("Error Details"):
+            st.code(str(e))
+            import traceback
+            st.code(traceback.format_exc())
         st.stop()
     
     # Sidebar navigation
-    st.sidebar.title("🧭 Navigation")
+    st.sidebar.title("Navigation")
+    
+    # User info and logout
+    st.sidebar.markdown(f"**User:** {st.session_state.get('username', 'Unknown')}")
+    if st.sidebar.button("Logout"):
+        logout()
+    
+    st.sidebar.markdown("---")
     
     # Current date display
-    st.sidebar.markdown(f"**📅 Today:** {planner.current_date.strftime('%B %d, %Y')}")
-    st.sidebar.markdown(f"**📊 Sheets Loaded:** {len(planner.data)}")
+    st.sidebar.markdown(f"**Today:** {planner.current_date.strftime('%B %d, %Y')}")
+    st.sidebar.markdown(f"**Data Sources:** {len(planner.data)} sheets loaded")
     
     # Quick alerts in sidebar
     alerts = planner.get_department_alerts()
     if alerts:
-        st.sidebar.warning(f"⚠️ {len(alerts)} department(s) need attention!")
+        st.sidebar.warning(f"{len(alerts)} departments need attention")
     
     view_mode = st.sidebar.selectbox(
         "Select View",
         [
-            "📋 Today's Overview",
-            "📅 Calendar View", 
-            "🎯 Upcoming Milestones",
-            "🏢 Department Dashboard",
-            "📊 Data Insights"
+            "Today's Overview",
+            "Calendar View", 
+            "Upcoming Milestones",
+            "Department Dashboard",
+            "Data Analytics"
         ]
     )
     
     # Refresh button
-    if st.sidebar.button("🔄 Refresh Data"):
+    if st.sidebar.button("Refresh Data"):
         planner.load_data()
         st.rerun()
     
     # Main content area
-    if view_mode == "📋 Today's Overview":
+    if view_mode == "Today's Overview":
         show_todays_overview(planner)
-    elif view_mode == "📅 Calendar View":
+    elif view_mode == "Calendar View":
         show_calendar_view(planner)
-    elif view_mode == "🎯 Upcoming Milestones":
+    elif view_mode == "Upcoming Milestones":
         show_upcoming_milestones(planner)
-    elif view_mode == "🏢 Department Dashboard":
+    elif view_mode == "Department Dashboard":
         show_department_dashboard(planner)
-    elif view_mode == "📊 Data Insights":
+    elif view_mode == "Data Analytics":
         show_data_insights(planner)
     
     # Footer
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**📁 Data Source:** Ascent Planner Sep, 16 2025.xlsx")
-    st.sidebar.markdown("**🔄 Last Updated:** " + datetime.now().strftime("%H:%M:%S"))
+    st.sidebar.markdown("**Data Source:** Ascent Planner Sep, 16 2025.xlsx")
+    st.sidebar.markdown("**Last Updated:** " + datetime.now().strftime("%H:%M:%S"))
 
 if __name__ == "__main__":
     main()
