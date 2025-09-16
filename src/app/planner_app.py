@@ -1227,29 +1227,97 @@ def show_requirements_management(planner: AscentPlannerCalendar):
         )
         st.plotly_chart(fig_clarity, use_container_width=True, key="req_clarity_overall")
     
-    # Detailed unclear requirements list - only show assigned tasks
-    st.subheader("Tasks Needing Requirement Clarification (Assigned Only)")
+    # Interactive unclear requirements dropdown
+    st.subheader("Review Tasks with Unclear Requirements")
+    
     if not unclear_tasks.empty:
-        assigned_unclear_count = 0
+        # Create list of all unclear tasks for dropdown
+        unclear_task_options = ["Select a task to review..."]
+        unclear_task_data = {}
         
-        for _, task in unclear_tasks.iterrows():
-            task_name = str(task.get('Task Name', 'Unknown'))
-            accountable = task.get('Accountable')
-            status = task.get('Status1')
+        for idx, task in unclear_tasks.iterrows():
+            task_name = str(task.get('Task Name', 'Unknown')).strip()
+            if task_name and task_name != 'Unknown':
+                unclear_task_options.append(task_name)
+                unclear_task_data[task_name] = {
+                    'accountable': task.get('Accountable'),
+                    'status': task.get('Status1'),
+                    'start_date': task.get('Start Date'),
+                    'beta_date': task.get('Beta Realease'),
+                    'prod_date': task.get('PROD Release'),
+                    'demo_training': task.get(' Demo/Training'),
+                    'requirement_unclear': task.get('Requirement Unclear.1')
+                }
+        
+        # Dropdown selection
+        selected_task = st.selectbox(
+            f"Select from {len(unclear_task_options)-1} tasks with unclear requirements:",
+            unclear_task_options
+        )
+        
+        # Show details of selected task
+        if selected_task != "Select a task to review...":
+            task_info = unclear_task_data[selected_task]
             
-            # Only show if task has valid owner and status
-            if (pd.notna(accountable) and 
-                str(accountable).lower() not in ['nan', 'none', ''] and
-                pd.notna(status) and 
-                str(status).lower() not in ['nan', 'none', '']):
+            st.markdown(f"""
+            <div class="data-card">
+                <h4>{selected_task}</h4>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.write("**Assignment Info:**")
+                accountable = task_info['accountable']
+                if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+                    accountable_clean = planner._consolidate_department_name(accountable)
+                    st.write(f"Owner: {accountable_clean}")
+                else:
+                    st.error("Owner: UNASSIGNED")
                 
-                accountable_clean = planner._consolidate_department_name(accountable)
-                if accountable_clean is not None:
-                    assigned_unclear_count += 1
-                    st.write(f"**{task_name}** - Owner: {accountable_clean} - Status: {status}")
-        
-        if assigned_unclear_count == 0:
-            st.info("All unclear requirements are currently unassigned - need to assign owners first")
+                status = task_info['status']
+                if pd.notna(status) and str(status).lower() not in ['nan', 'none', '']:
+                    st.write(f"Status: {status}")
+                else:
+                    st.write("Status: Not Set")
+            
+            with col2:
+                st.write("**Timeline:**")
+                start_date = task_info['start_date']
+                if pd.notna(start_date):
+                    st.write(f"Start Date: {start_date}")
+                
+                beta_date = task_info['beta_date']
+                if pd.notna(beta_date):
+                    st.write(f"Beta Release: {beta_date}")
+                
+                prod_date = task_info['prod_date']
+                if pd.notna(prod_date):
+                    st.write(f"Prod Release: {prod_date}")
+            
+            with col3:
+                st.write("**Requirement Status:**")
+                unclear_detail = task_info['requirement_unclear']
+                if pd.notna(unclear_detail):
+                    st.write(f"Clarity Status: {unclear_detail}")
+                else:
+                    st.write("Clarity Status: Unclear")
+                
+                demo_training = task_info['demo_training']
+                if pd.notna(demo_training):
+                    st.write(f"Demo/Training: {demo_training}")
+            
+            # Action needed section
+            st.markdown("""
+            <div class="alert-container">
+                <h4 style="margin-top: 0;">Action Required</h4>
+                <p>This task cannot proceed until requirements are clarified. Contact the owner or assign an owner to begin requirement clarification process.</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    else:
+        st.success("No tasks have unclear requirements - all requirements are clear!")
 
 def show_release_planning(planner: AscentPlannerCalendar):
     """Manage release planning for Beta and Production"""
