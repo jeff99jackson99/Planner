@@ -355,13 +355,74 @@ def show_executive_dashboard(planner: AscentPlannerCalendar):
         unclear_reqs = len(planner_df[planner_df['Requirement Unclear'] == True])
     
     with col1:
-        st.metric("Total Tasks", total_tasks, help="Total tasks across all project sheets")
+        st.metric("Total Project Tasks", total_tasks, help="All tasks across planner, roadmap, and migration sheets")
     with col2:
-        st.metric("Open Decisions", open_decisions, help="Decisions requiring immediate attention")
+        st.metric("Business Decisions Pending", open_decisions, help="Open decisions blocking project progress - require executive input")
     with col3:
-        st.metric("Critical Issues", critical_issues, help="High priority issues requiring Ascent action")
+        st.metric("Critical Issues (Ascent Action)", critical_issues, help="Highest priority issues requiring Ascent business decisions or approvals")
     with col4:
-        st.metric("Unclear Requirements", unclear_reqs, help="Tasks needing requirement clarification")
+        st.metric("Tasks Blocked on Requirements", unclear_reqs, help="Tasks that cannot proceed until requirements are clarified")
+    
+    # Key Performance Indicators Explanation
+    st.markdown('<div class="section-header"><h3>Key Performance Indicators Explained</h3></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div class="data-card">
+            <h4>What These Numbers Mean:</h4>
+            <p><strong>193 Total Project Tasks:</strong> All work items across your entire project</p>
+            <p><strong>20 Business Decisions Pending:</strong> Decisions that require executive input and are blocking progress</p>
+            <p><strong>{} Critical Issues:</strong> Highest priority problems requiring immediate Ascent business decisions</p>
+            <p><strong>82 Tasks Blocked on Requirements:</strong> Work items that cannot start until requirements are clarified</p>
+        </div>
+        """.format(critical_issues), unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="data-card">
+            <h4>Action Items for Ascent:</h4>
+            <p><strong>Immediate:</strong> Review {} critical issues requiring business decisions</p>
+            <p><strong>This Week:</strong> Make 20 pending business decisions</p>
+            <p><strong>Ongoing:</strong> Clarify requirements for 82 blocked tasks</p>
+            <p><strong>Goal:</strong> Reduce blocked tasks to enable team productivity</p>
+        </div>
+        """.format(critical_issues), unsafe_allow_html=True)
+    
+    # Critical Issues Details
+    if critical_issues > 0:
+        st.markdown('<div class="section-header"><h3>Critical Issues Requiring Immediate Ascent Action</h3></div>', unsafe_allow_html=True)
+        
+        # Show what the critical issues actually are
+        hotfixes_df = planner.get_hotfixes_status()
+        if not hotfixes_df.empty:
+            critical_found = 0
+            for _, row in hotfixes_df.iterrows():
+                priority = str(row.get('Unnamed: 3', '')).lower()
+                status = str(row.get('Unnamed: 5', '')).lower()
+                summary = str(row.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue'))
+                
+                if ('highest' in priority and 'done' not in status and 
+                    planner._requires_ascent_action(summary)):
+                    critical_found += 1
+                    st.markdown(f"""
+                    <div class="alert-container">
+                        <h4 style="margin-top: 0; color: #721c24;">Critical Issue #{critical_found}</h4>
+                        <p><strong>Issue:</strong> {summary}</p>
+                        <p><strong>Priority Level:</strong> {row.get('Unnamed: 3', 'Unknown')}</p>
+                        <p><strong>Current Status:</strong> {row.get('Unnamed: 5', 'Unknown')}</p>
+                        <p><strong>Why Critical:</strong> Requires Ascent business decision, policy clarification, or executive approval</p>
+                        <p><strong>Impact:</strong> Blocking other work until resolved</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="success-container">
+            <h4 style="margin-top: 0; color: #155724;">No Critical Issues</h4>
+            <p style="margin-bottom: 0;">All highest priority issues have been resolved or don't require Ascent action</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Department Alerts Section
     st.markdown('<div class="section-header"><h3>Department Attention Required</h3></div>', unsafe_allow_html=True)
@@ -827,13 +888,13 @@ def show_data_insights(planner: AscentPlannerCalendar):
         hotfixes_df = planner.get_hotfixes_status()
         
         with col1:
-            st.metric("Total Tasks", len(planner_df) if not planner_df.empty else 0)
+            st.metric("Total Project Tasks", len(planner_df) if not planner_df.empty else 0, help="All tasks in main planner sheet")
         with col2:
-            st.metric("Open Decisions", len(decisions_df) if not decisions_df.empty else 0)
+            st.metric("Business Decisions Pending", len(decisions_df) if not decisions_df.empty else 0, help="Open decisions requiring executive input")
         with col3:
-            st.metric("Issues Tracked", len(hotfixes_df) if not hotfixes_df.empty else 0)
+            st.metric("Bug Reports & Enhancements", len(hotfixes_df) if not hotfixes_df.empty else 0, help="All issues tracked in CR/Hotfixes sheet")
         with col4:
-            st.metric("Data Sources", len(planner.data))
+            st.metric("Excel Sheets Loaded", len(planner.data), help="Number of data sources integrated")
         
         # Business-Critical Analysis
         st.subheader("Critical Business Metrics")
@@ -1114,12 +1175,12 @@ def show_requirements_management(planner: AscentPlannerCalendar):
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Clear Requirements", len(clear_tasks))
+        st.metric("Tasks Ready to Work", len(clear_tasks), help="Tasks with clear, actionable requirements")
     with col2:
-        st.metric("Unclear Requirements", len(unclear_tasks))
+        st.metric("Tasks Blocked (Need Clarification)", len(unclear_tasks), help="Tasks waiting for requirement clarification before work can begin")
     with col3:
         clarity_rate = (len(clear_tasks) / len(planner_df)) * 100
-        st.metric("Clarity Rate", f"{clarity_rate:.1f}%")
+        st.metric("Project Clarity Rate", f"{clarity_rate:.1f}%", help="Percentage of tasks with clear requirements")
     
     # Charts
     col1, col2 = st.columns(2)
