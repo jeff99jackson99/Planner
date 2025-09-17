@@ -2065,13 +2065,23 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         else:
             status_clean = 'Not Set'
         
+        # Safe date comparison
+        due_soon = False
+        if pd.notna(beta_date):
+            try:
+                beta_date_converted = pd.to_datetime(beta_date)
+                cutoff_date = pd.Timestamp('2025-09-25')
+                due_soon = beta_date_converted <= cutoff_date
+            except:
+                due_soon = False
+        
         beta_task_list.append({
             'task_name': task_name,
             'department': department,
             'owner': owner,
             'status': status_clean,
             'beta_date': beta_date,
-            'due_soon': beta_date <= pd.Timestamp('2025-09-25') if pd.notna(beta_date) else False
+            'due_soon': due_soon
         })
     
     # Show department distribution
