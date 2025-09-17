@@ -2172,9 +2172,27 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     # Complete Beta task table
     st.subheader("Complete Beta Task List")
     
+    # Department filter
+    all_departments = sorted(list(set([task['department'] for task in beta_task_list])))
+    department_options = ["All Departments"] + all_departments
+    
+    selected_department = st.selectbox(
+        "Filter by Department:",
+        department_options,
+        key="beta_department_filter"
+    )
+    
+    # Filter tasks based on selected department
+    if selected_department == "All Departments":
+        filtered_tasks = beta_task_list
+    else:
+        filtered_tasks = [task for task in beta_task_list if task['department'] == selected_department]
+    
+    st.write(f"Showing {len(filtered_tasks)} Beta tasks" + (f" from {selected_department}" if selected_department != "All Departments" else ""))
+    
     # Create DataFrame for display
     display_data = []
-    for i, task in enumerate(beta_task_list, 1):
+    for i, task in enumerate(filtered_tasks, 1):
         display_data.append({
             '#': i,
             'Task Name': task['task_name'],
