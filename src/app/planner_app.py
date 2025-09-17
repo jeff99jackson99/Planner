@@ -37,7 +37,6 @@ class SharePointConnector:
     def get_live_data(self) -> Optional[Dict[str, pd.DataFrame]]:
         """Get live data from SharePoint Excel file"""
         try:
-            st.info("Live SharePoint connection requires authentication setup")
             return self._get_alternative_live_data()
         except Exception as e:
             st.error(f"Error connecting to SharePoint: {e}")
@@ -94,7 +93,7 @@ class SharePointConnector:
                     st.error(f"Error reading Excel file from {file_path}: {e}")
                     continue
         
-        st.error("❌ No SharePoint-synced file found. Please set up OneDrive or SharePoint sync.")
+        # Silently return None if no SharePoint file found
         return None
 
 # Page configuration
@@ -130,14 +129,8 @@ class AscentPlannerCalendar:
                     
                     return
             
-            # If SharePoint fails, show error - no local fallback
-            st.error("❌ SharePoint data not available. Please ensure SharePoint file is accessible.")
-            st.markdown("""
-            **SharePoint File Required:**
-            - Site: https://shivohm.sharepoint.com/sites/Ascent-SDSTeam
-            - File: Ascent Planner Sep, 16 2025.xlsx
-            - This application only uses live SharePoint data
-            """)
+            # Silently handle SharePoint connection issues
+            pass
             
         except Exception as e:
             st.error(f"Error loading SharePoint data: {e}")
