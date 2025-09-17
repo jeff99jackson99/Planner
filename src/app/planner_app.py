@@ -2172,9 +2172,9 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     # Complete Beta task table
     st.subheader("Complete Beta Task List")
     
-    # Department filter
-    all_departments = sorted(list(set([task['department'] for task in beta_task_list])))
-    department_options = ["All Departments"] + all_departments
+    # Department filter - only show departments that have Beta tasks
+    departments_with_tasks = sorted(list(set([task['department'] for task in beta_task_list if task['department']])))
+    department_options = ["All Departments"] + departments_with_tasks
     
     selected_department = st.selectbox(
         "Filter by Department:",
@@ -2188,36 +2188,28 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     else:
         filtered_tasks = [task for task in beta_task_list if task['department'] == selected_department]
     
-    # Display count - handle zero case
+    # Display count
     task_count = len(filtered_tasks)
     if selected_department == "All Departments":
         st.write(f"Showing {task_count} Beta tasks")
     else:
-        if task_count == 0:
-            st.write(f"Showing 0 Beta tasks from {selected_department}")
-            st.info(f"No Beta tasks currently assigned to {selected_department} department.")
-        else:
-            st.write(f"Showing {task_count} Beta tasks from {selected_department}")
+        st.write(f"Showing {task_count} Beta tasks from {selected_department}")
     
     # Create DataFrame for display
-    if task_count > 0:
-        display_data = []
-        for i, task in enumerate(filtered_tasks, 1):
-            display_data.append({
-                '#': i,
-                'Task Name': task['task_name'],
-                'Department': task['department'],
-                'Owner': task['owner'],
-                'Status': task['status'],
-                'Beta Date': task['beta_date'],
-                'Priority': '🔥 DUE SOON' if task['due_soon'] else '📅 Scheduled'
-            })
-        
-        display_df = pd.DataFrame(display_data)
-        st.dataframe(display_df, use_container_width=True)
-    else:
-        # Show empty state when no tasks
-        st.write("**No tasks to display for the selected department.**")
+    display_data = []
+    for i, task in enumerate(filtered_tasks, 1):
+        display_data.append({
+            '#': i,
+            'Task Name': task['task_name'],
+            'Department': task['department'],
+            'Owner': task['owner'],
+            'Status': task['status'],
+            'Beta Date': task['beta_date'],
+            'Priority': '🔥 DUE SOON' if task['due_soon'] else '📅 Scheduled'
+        })
+    
+    display_df = pd.DataFrame(display_data)
+    st.dataframe(display_df, use_container_width=True)
 
 def show_sharepoint_setup(planner: AscentPlannerCalendar):
     """Configure SharePoint live feed setup"""
