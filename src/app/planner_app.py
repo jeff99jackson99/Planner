@@ -13,6 +13,7 @@ from typing import Dict, List, Any, Optional
 import calendar
 import numpy as np
 import hashlib
+import time
 # SharePoint connector functionality embedded to avoid import issues
 class SharePointConnector:
     def __init__(self):
@@ -2106,10 +2107,10 @@ def show_sharepoint_setup(planner: AscentPlannerCalendar):
         st.markdown(f"""
         <div class="data-card">
             <h4>Live Feed Status</h4>
-            <p><strong>Live Feed Enabled:</strong> {use_live_feed}</p>
+            <p><strong>Live Feed Enabled:</strong> {planner.use_live_feed}</p>
             <p><strong>SharePoint Connector:</strong> {'Active' if planner.sharepoint_connector else 'Inactive'}</p>
-            <p><strong>Auto-Refresh:</strong> {'Enabled' if use_live_feed else 'Manual'}</p>
-            <p><strong>Update Check:</strong> Every 5 minutes</p>
+            <p><strong>Auto-Refresh:</strong> {'Enabled' if planner.use_live_feed else 'Manual'}</p>
+            <p><strong>Update Check:</strong> Every 30 seconds</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2236,11 +2237,22 @@ def main():
     # Apply custom styling
     apply_custom_css()
     
-    # Professional header
+    # Auto-refresh functionality for live SharePoint data
+    if 'last_refresh' not in st.session_state:
+        st.session_state.last_refresh = time.time()
+    
+    # Auto-refresh every 30 seconds
+    current_time = time.time()
+    if current_time - st.session_state.last_refresh > 30:  # 30 seconds
+        st.session_state.last_refresh = current_time
+        st.rerun()
+    
+    # Professional header with live status
     st.markdown("""
     <div class="header-container">
         <h1 style="margin: 0; font-size: 2.5rem; font-weight: 300;">Ascent Planner Calendar</h1>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9;">Project Tracking & Milestone Management System</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9;">Live SharePoint Project Tracking & Management System</p>
+        <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; opacity: 0.7;">Auto-refreshing every 30 seconds</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2356,15 +2368,13 @@ def main():
                 if sharepoint_url:
                     planner.sharepoint_connector.set_sharepoint_url(sharepoint_url)
         
-        # Auto-refresh for live feed
-        if st.sidebar.button("Refresh Live Data"):
-            planner.load_data()
-            st.rerun()
-    else:
-        # Regular refresh button
-        if st.sidebar.button("Refresh Data"):
-            planner.load_data()
-            st.rerun()
+        # Auto-refresh status display
+        st.sidebar.success("🔄 Auto-refresh: Every 30 seconds")
+        
+        # Show next refresh countdown
+        next_refresh = 30 - (time.time() - st.session_state.last_refresh)
+        if next_refresh > 0:
+            st.sidebar.info(f"Next refresh in: {int(next_refresh)} seconds")
     
     # Main content area - SharePoint data focused views
     if view_mode == "Executive Dashboard":
@@ -2390,10 +2400,12 @@ def main():
     else:
         show_executive_dashboard(planner)  # Default view
     
-    # Footer
+    # Footer with live status
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**Data Source:** Ascent Planner Sep, 16 2025.xlsx")
-    st.sidebar.markdown("**Last Updated:** " + datetime.now().strftime("%H:%M:%S"))
+    st.sidebar.markdown("**📡 SharePoint Live Feed**")
+    st.sidebar.markdown("**File:** Ascent Planner Sep, 16 2025.xlsx")
+    st.sidebar.markdown("**Live Update:** " + datetime.now().strftime("%H:%M:%S"))
+    st.sidebar.markdown("**Status:** 🟢 Auto-refreshing")
 
 if __name__ == "__main__":
     main()
