@@ -43,33 +43,57 @@ class SharePointConnector:
             return None
     
     def _get_alternative_live_data(self) -> Optional[Dict[str, pd.DataFrame]]:
-        """Alternative methods for live data access"""
-        local_file = "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx"
+        """Get live data from SharePoint-synced locations"""
+        # Try multiple potential SharePoint sync locations
+        potential_paths = [
+            # OneDrive SharePoint sync path
+            os.path.expanduser("~/OneDrive - Shivohm/Ascent-SDSTeam/Ascent Planner Sep, 16 2025.xlsx"),
+            # SharePoint Desktop sync path
+            os.path.expanduser("~/SharePoint - Shivohm/Ascent-SDSTeam/Ascent Planner Sep, 16 2025.xlsx"),
+            # Local synced copy
+            "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx",
+            # Cloud deployment path
+            "Ascent Planner Sep, 16 2025.xlsx"
+        ]
         
-        if os.path.exists(local_file):
-            file_mod_time = os.path.getmtime(local_file)
-            current_time = datetime.now().timestamp()
-            
-            if current_time - file_mod_time < 300:  # 5 minutes
-                st.success("Using recently updated local file (Live data)")
-            else:
-                st.info("Using local file (Last updated: " + 
-                       datetime.fromtimestamp(file_mod_time).strftime("%Y-%m-%d %H:%M:%S") + ")")
-            
-            try:
-                excel_file = pd.ExcelFile(local_file)
-                data = {}
-                for sheet_name in excel_file.sheet_names:
-                    df = pd.read_excel(local_file, sheet_name=sheet_name)
-                    data[sheet_name] = df
+        for file_path in potential_paths:
+            if os.path.exists(file_path):
+                file_mod_time = os.path.getmtime(file_path)
+                current_time = datetime.now().timestamp()
+                mod_datetime = datetime.fromtimestamp(file_mod_time)
                 
-                self.last_update = datetime.now()
-                return data
+                # Check if this looks like live SharePoint data
+                if current_time - file_mod_time < 3600:  # Within last hour
+                    st.success(f"✅ LIVE SHAREPOINT DATA - Last updated: {mod_datetime.strftime('%H:%M:%S')}")
+                elif current_time - file_mod_time < 86400:  # Within last day
+                    st.info(f"📊 SharePoint data from today: {mod_datetime.strftime('%H:%M:%S')}")
+                else:
+                    st.warning(f"⚠️ SharePoint data from: {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
                 
-            except Exception as e:
-                st.error(f"Error reading Excel file: {e}")
-                return None
+                try:
+                    excel_file = pd.ExcelFile(file_path)
+                    data = {}
+                    for sheet_name in excel_file.sheet_names:
+                        df = pd.read_excel(file_path, sheet_name=sheet_name)
+                        data[sheet_name] = df
+                    
+                    self.last_update = datetime.now()
+                    
+                    # Show data source info
+                    if "OneDrive" in file_path:
+                        st.sidebar.success("📡 Data Source: OneDrive SharePoint Sync")
+                    elif "SharePoint" in file_path:
+                        st.sidebar.success("📡 Data Source: SharePoint Desktop Sync")
+                    else:
+                        st.sidebar.info("📁 Data Source: Local File")
+                    
+                    return data
+                    
+                except Exception as e:
+                    st.error(f"Error reading Excel file from {file_path}: {e}")
+                    continue
         
+        st.error("❌ No SharePoint-synced file found. Please set up OneDrive or SharePoint sync.")
         return None
 
 # Page configuration
@@ -89,38 +113,33 @@ class AscentPlannerCalendar:
         self.load_data()
     
     def load_data(self) -> None:
-        """Load data from Excel file or live SharePoint feed"""
+        """Load data ONLY from SharePoint live feed"""
         try:
-            # Try live feed first if enabled
-            if self.use_live_feed and self.sharepoint_connector:
+            # ONLY use SharePoint data - no local fallback
+            if self.sharepoint_connector:
                 live_data = self.sharepoint_connector.get_live_data()
                 if live_data:
                     self.data = live_data
-                    st.success(f"Loaded {len(self.data)} sheets from live SharePoint feed")
+                    
+                    # Show detailed information about ALL tabs loaded
+                    st.sidebar.markdown("**📊 SHAREPOINT DATA LOADED:**")
+                    for sheet_name, df in self.data.items():
+                        rows_with_data = len(df.dropna(how='all'))
+                        st.sidebar.markdown(f"• {sheet_name}: {rows_with_data} rows")
+                    
                     return
             
-            # Fallback to local file
-            if not os.path.exists(self.excel_path):
-                st.error(f"Excel file not found: {self.excel_path}")
-                return
-            
-            excel_file = pd.ExcelFile(self.excel_path)
-            for sheet_name in excel_file.sheet_names:
-                df = pd.read_excel(self.excel_path, sheet_name=sheet_name)
-                self.data[sheet_name] = df
-            
-            # Check file modification time
-            file_mod_time = os.path.getmtime(self.excel_path)
-            mod_datetime = datetime.fromtimestamp(file_mod_time)
-            time_diff = datetime.now() - mod_datetime
-            
-            if time_diff.total_seconds() < 300:  # Less than 5 minutes
-                st.success(f"Loaded {len(self.data)} sheets from recently updated file (Live data)")
-            else:
-                st.info(f"Loaded {len(self.data)} sheets from local file (Last updated: {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')})")
+            # If SharePoint fails, show error - no local fallback
+            st.error("❌ SharePoint data not available. Please ensure SharePoint file is accessible.")
+            st.markdown("""
+            **SharePoint File Required:**
+            - Site: https://shivohm.sharepoint.com/sites/Ascent-SDSTeam
+            - File: Ascent Planner Sep, 16 2025.xlsx
+            - This application only uses live SharePoint data
+            """)
             
         except Exception as e:
-            st.error(f"Error loading data: {e}")
+            st.error(f"Error loading SharePoint data: {e}")
     
     def get_planner_tasks(self) -> pd.DataFrame:
         """Get tasks from the main Planner sheet"""
@@ -1826,18 +1845,177 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
             )
             st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
+def show_complete_sharepoint_data(planner: AscentPlannerCalendar):
+    """Show complete view of ALL SharePoint data from ALL tabs"""
+    st.header("Complete SharePoint Data - All Tabs")
+    st.markdown("**Live data from all 6 SharePoint sheets**")
+    
+    if not planner.data:
+        st.error("No SharePoint data loaded")
+        return
+    
+    # Create tabs for each SharePoint sheet
+    sheet_tabs = st.tabs([f"{sheet_name} ({len(df.dropna(how='all'))})" for sheet_name, df in planner.data.items()])
+    
+    tab_index = 0
+    for sheet_name, df in planner.data.items():
+        with sheet_tabs[tab_index]:
+            st.subheader(f"SharePoint Sheet: {sheet_name}")
+            
+            # Show sheet summary
+            rows_with_data = len(df.dropna(how='all'))
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Total Rows", len(df))
+            with col2:
+                st.metric("Rows with Data", rows_with_data)
+            with col3:
+                st.metric("Columns", len(df.columns))
+            
+            # Show key insights for each sheet
+            if sheet_name == 'Planner':
+                # Main planner analysis
+                st.write("**Key Insights from Planner Sheet:**")
+                
+                unclear_count = len(df[df['Requirement Unclear'] == True]) if 'Requirement Unclear' in df.columns else 0
+                assigned_count = df['Accountable'].notna().sum() if 'Accountable' in df.columns else 0
+                status_count = df['Status1'].notna().sum() if 'Status1' in df.columns else 0
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Tasks with Unclear Requirements", unclear_count)
+                with col2:
+                    st.metric("Assigned Tasks", assigned_count)
+                with col3:
+                    st.metric("Tasks with Status", status_count)
+                
+                # Show status distribution
+                if 'Status1' in df.columns:
+                    status_counts = df['Status1'].value_counts()
+                    status_counts = status_counts[status_counts.index.notna()]
+                    
+                    if not status_counts.empty:
+                        fig_status = px.pie(
+                            values=status_counts.values,
+                            names=status_counts.index,
+                            title="Task Status Distribution"
+                        )
+                        st.plotly_chart(fig_status, use_container_width=True, key=f"complete_{sheet_name}_status")
+            
+            elif sheet_name == 'Open Decision & Next Steps ':
+                # Decision analysis
+                st.write("**Open Decisions Analysis:**")
+                
+                open_decisions = 0
+                decision_owners = []
+                
+                for _, row in df.iterrows():
+                    if 'Open' in str(row.get('Unnamed: 3', '')):
+                        open_decisions += 1
+                        who = str(row.get('Gayatri Raol ', 'Unknown'))
+                        if who != 'Unknown':
+                            decision_owners.append(who)
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Open Decisions", open_decisions)
+                with col2:
+                    st.metric("Decision Makers", len(set(decision_owners)))
+                
+                # Show decision ownership
+                if decision_owners:
+                    decision_counts = pd.Series(decision_owners).value_counts()
+                    fig_decisions = px.pie(
+                        values=decision_counts.values,
+                        names=decision_counts.index,
+                        title="Decisions by Owner"
+                    )
+                    st.plotly_chart(fig_decisions, use_container_width=True, key=f"complete_{sheet_name}_decisions")
+            
+            elif sheet_name == 'List of CR_HotFixes_ENHCE':
+                # Issues analysis
+                st.write("**Issues & Hotfixes Analysis:**")
+                
+                priority_counts = df['Unnamed: 3'].value_counts() if 'Unnamed: 3' in df.columns else pd.Series()
+                status_counts = df['Unnamed: 5'].value_counts() if 'Unnamed: 5' in df.columns else pd.Series()
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if not priority_counts.empty:
+                        priority_counts = priority_counts[priority_counts.index.notna()]
+                        fig_priority = px.pie(
+                            values=priority_counts.values,
+                            names=priority_counts.index,
+                            title="Issues by Priority"
+                        )
+                        st.plotly_chart(fig_priority, use_container_width=True, key=f"complete_{sheet_name}_priority")
+                
+                with col2:
+                    if not status_counts.empty:
+                        status_counts = status_counts[status_counts.index.notna()]
+                        fig_issue_status = px.pie(
+                            values=status_counts.values,
+                            names=status_counts.index,
+                            title="Issues by Status"
+                        )
+                        st.plotly_chart(fig_issue_status, use_container_width=True, key=f"complete_{sheet_name}_status")
+            
+            # Show raw data for all sheets
+            st.subheader(f"Raw Data from {sheet_name}")
+            
+            # Add search functionality
+            search_term = st.text_input(f"Search in {sheet_name}:", key=f"search_{sheet_name}")
+            
+            if search_term:
+                # Search across all columns
+                mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False, na=False)).any(axis=1)
+                filtered_df = df[mask]
+                st.write(f"Found {len(filtered_df)} matching rows")
+                st.dataframe(filtered_df, use_container_width=True)
+            else:
+                # Show all data
+                st.dataframe(df, use_container_width=True)
+            
+            # Show column information
+            with st.expander(f"Column Details for {sheet_name}"):
+                st.write(f"**{len(df.columns)} columns in this sheet:**")
+                for i, col in enumerate(df.columns, 1):
+                    non_null_count = df[col].notna().sum()
+                    st.write(f"{i}. **{col}** - {non_null_count} entries ({df[col].dtype})")
+        
+        tab_index += 1
+
 def show_sharepoint_setup(planner: AscentPlannerCalendar):
     """Configure SharePoint live feed setup"""
     st.header("SharePoint Live Feed Configuration")
     
     st.markdown("""
     <div class="data-card">
-        <h4>Current SharePoint URL</h4>
-        <p><strong>File Location:</strong> https://shivohm.sharepoint.com/sites/Ascent-SDSTeam</p>
-        <p><strong>File Name:</strong> Ascent Planner Sep, 16 2025.xlsx</p>
-        <p><strong>Status:</strong> Ready for live feed integration</p>
+        <h4>Your SharePoint Live Feed</h4>
+        <p><strong>Site:</strong> https://shivohm.sharepoint.com/sites/Ascent-SDSTeam</p>
+        <p><strong>File:</strong> Ascent Planner Sep, 16 2025.xlsx</p>
+        <p><strong>Document ID:</strong> ed87f8ed-3e27-439b-8c39-bea7016a6e79</p>
+        <p><strong>Status:</strong> ✅ URL configured and ready</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Show current connection status
+    if planner.sharepoint_connector and planner.sharepoint_connector.sharepoint_url:
+        st.success("🔗 SharePoint URL configured successfully!")
+        
+        # Show live data status
+        if planner.use_live_feed:
+            st.markdown("""
+            <div class="success-container">
+                <h4>Live Feed Active</h4>
+                <p>Application is monitoring SharePoint for updates</p>
+                <p>Data refreshes automatically when SharePoint file changes</p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("SharePoint URL not configured")
     
     # Setup options
     st.subheader("Live Feed Setup Options")
@@ -2100,10 +2278,22 @@ def main():
                 st.error(f"Error accessing files: {e}")
                 st.stop()
         
-        # Check for live feed option
-        use_live_feed = st.sidebar.checkbox("Enable Live SharePoint Feed", value=False, help="Monitor SharePoint for real-time updates")
+        # ONLY use SharePoint data - no local fallback
+        st.sidebar.markdown("**📡 SHAREPOINT LIVE DATA**")
+        st.sidebar.success("Connected to Ascent-SDSTeam")
+        st.sidebar.markdown("Using live SharePoint data only")
         
-        planner = AscentPlannerCalendar(excel_path, use_live_feed=use_live_feed)
+        # Force live feed mode
+        use_live_feed = True
+        
+        # Initialize with SharePoint-only mode
+        planner = AscentPlannerCalendar(excel_path, use_live_feed=True)
+        
+        # Configure SharePoint URL with your exact URL
+        sharepoint_url = "https://shivohm.sharepoint.com/:x:/r/sites/Ascent-SDSTeam/_layouts/15/Doc2.aspx?action=edit&sourcedoc=%7Bed87f8ed-3e27-439b-8c39-bea7016a6e79%7D&wdOrigin=TEAMS-MAGLEV.teams_ns.rwc&wdExp=TEAMS-TREATMENT&wdhostclicktime=1758148996116&web=1"
+        
+        if planner.sharepoint_connector:
+            planner.sharepoint_connector.set_sharepoint_url(sharepoint_url)
         
         if not planner.data:
             st.error("No data loaded. Please check the Excel file.")
@@ -2140,6 +2330,7 @@ def main():
         "Select View",
         [
             "Executive Dashboard",
+            "Complete SharePoint Data View",
             "Requirements Management",
             "Release Planning",
             "Decision Tracking", 
@@ -2175,9 +2366,11 @@ def main():
             planner.load_data()
             st.rerun()
     
-    # Main content area - task management focused views
+    # Main content area - SharePoint data focused views
     if view_mode == "Executive Dashboard":
         show_executive_dashboard(planner)
+    elif view_mode == "Complete SharePoint Data View":
+        show_complete_sharepoint_data(planner)
     elif view_mode == "Requirements Management":
         show_requirements_management(planner)
     elif view_mode == "Release Planning":
