@@ -1988,6 +1988,172 @@ def show_complete_sharepoint_data(planner: AscentPlannerCalendar):
         
         tab_index += 1
 
+def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
+    """Show Beta release tasks organized by department"""
+    st.header("Beta Release Tasks by Department")
+    st.markdown("**Live SharePoint data - Beta release task tracking**")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available from SharePoint")
+        return
+    
+    # Filter for Beta release tasks only
+    beta_tasks = planner_df[planner_df['Beta Realease'].notna()]
+    
+    if beta_tasks.empty:
+        st.info("No Beta release tasks found in SharePoint data")
+        return
+    
+    # Beta release overview metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Beta Tasks", len(beta_tasks))
+    
+    with col2:
+        assigned_beta = beta_tasks['Accountable'].notna().sum()
+        st.metric("Assigned Beta Tasks", assigned_beta)
+    
+    with col3:
+        unassigned_beta = len(beta_tasks) - assigned_beta
+        st.metric("Unassigned Beta Tasks", unassigned_beta)
+    
+    with col4:
+        assignment_rate = (assigned_beta / len(beta_tasks)) * 100 if len(beta_tasks) > 0 else 0
+        st.metric("Assignment Rate", f"{assignment_rate:.1f}%")
+    
+    # Organize Beta tasks by business department
+    departments = {
+        'Claims': [],
+        'Accounting': [], 
+        'Cancellations': [],
+        'Commissions': [],
+        'Onboarding': [],
+        'Reinsurance': [],
+        'Unassigned': []
+    }
+    
+    # Categorize Beta tasks by department
+    for _, task in beta_tasks.iterrows():
+        task_name = str(task.get('Task Name', 'Unknown')).strip()
+        task_name_lower = task_name.lower()
+        accountable = task.get('Accountable')
+        status = task.get('Status1')
+        beta_date = task.get('Beta Realease')
+        
+        # Clean up data
+        if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+            owner = planner._consolidate_department_name(accountable)
+        else:
+            owner = 'UNASSIGNED'
+        
+        if pd.notna(status) and str(status).lower() not in ['nan', 'none', '']:
+            status_clean = str(status)
+        else:
+            status_clean = 'Not Set'
+        
+        task_info = {
+            'name': task_name,
+            'owner': owner,
+            'status': status_clean,
+            'beta_date': beta_date
+        }
+        
+        # Categorize by business function
+        if any(keyword in task_name_lower for keyword in ['claim', 'payment to claim', 'lemon squad', 'snapsheet']):
+            departments['Claims'].append(task_info)
+        elif any(keyword in task_name_lower for keyword in ['reconcile', 'journal', 'cash', 'financial', 'rpt', 'report']):
+            departments['Accounting'].append(task_info)
+        elif any(keyword in task_name_lower for keyword in ['cancel', 'refund', 'diversicare']):
+            departments['Cancellations'].append(task_info)
+        elif any(keyword in task_name_lower for keyword in ['commission', 'statement', 'payee']):
+            departments['Commissions'].append(task_info)
+        elif any(keyword in task_name_lower for keyword in ['onboard', 'setup', 'agent', 'dealer']):
+            departments['Onboarding'].append(task_info)
+        elif any(keyword in task_name_lower for keyword in ['reins', 'cession', 'collateral']):
+            departments['Reinsurance'].append(task_info)
+        else:
+            if owner == 'UNASSIGNED':
+                departments['Unassigned'].append(task_info)
+            else:
+                # Put in most relevant department based on owner
+                departments['Accounting'].append(task_info)  # Default
+    
+    # Create department tabs for Beta tasks
+    dept_tabs = st.tabs([f"{dept} ({len(tasks)})" for dept, tasks in departments.items() if len(tasks) > 0])
+    
+    tab_index = 0
+    for dept_name, tasks in departments.items():
+        if len(tasks) > 0:
+            with dept_tabs[tab_index]:
+                st.subheader(f"{dept_name} Department - Beta Release Tasks")
+                
+                # Department metrics
+                col1, col2, col3 = st.columns(3)
+                
+                assigned_tasks = [task for task in tasks if task['owner'] != 'UNASSIGNED']
+                completed_tasks = [task for task in tasks if 'done' in task['status'].lower() or 'completed' in task['status'].lower()]
+                
+                with col1:
+                    st.metric("Total Beta Tasks", len(tasks))
+                with col2:
+                    st.metric("Assigned", len(assigned_tasks))
+                with col3:
+                    st.metric("Completed", len(completed_tasks))
+                
+                # Status distribution for this department
+                if tasks:
+                    status_counts = pd.Series([task['status'] for task in tasks]).value_counts()
+                    
+                    fig_dept_status = px.pie(
+                        values=status_counts.values,
+                        names=status_counts.index,
+                        title=f"{dept_name} Beta Task Status"
+                    )
+                    st.plotly_chart(fig_dept_status, use_container_width=True, key=f"beta_{dept_name.lower()}_status")
+                
+                # Interactive task selector for this department
+                task_options = ["Select Beta task..."] + [task['name'] for task in tasks]
+                selected_task = st.selectbox(
+                    f"Review {dept_name} Beta tasks:",
+                    task_options,
+                    key=f"beta_{dept_name.lower()}_dropdown"
+                )
+                
+                if selected_task != "Select Beta task...":
+                    # Find selected task details
+                    selected_task_info = next(task for task in tasks if task['name'] == selected_task)
+                    
+                    st.markdown(f"""
+                    <div class="data-card">
+                        <h4>{selected_task}</h4>
+                        <p><strong>Department:</strong> {dept_name}</p>
+                        <p><strong>Owner:</strong> {selected_task_info['owner']}</p>
+                        <p><strong>Status:</strong> {selected_task_info['status']}</p>
+                        <p><strong>Beta Release Date:</strong> {selected_task_info['beta_date']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Action items based on status
+                    if selected_task_info['owner'] == 'UNASSIGNED':
+                        st.error("**Action Required:** Assign owner for this Beta task")
+                    elif 'not started' in selected_task_info['status'].lower():
+                        st.warning("**Action Required:** Task needs to be started for Beta release")
+                    elif 'done' in selected_task_info['status'].lower():
+                        st.success("**Status:** Ready for Beta release")
+                    else:
+                        st.info("**Status:** In progress for Beta release")
+                
+                # Show all tasks in this department
+                with st.expander(f"All {dept_name} Beta Tasks ({len(tasks)})"):
+                    for i, task in enumerate(tasks, 1):
+                        status_icon = "✅" if 'done' in task['status'].lower() else "🔄" if 'progress' in task['status'].lower() else "⏳"
+                        owner_display = task['owner'] if task['owner'] != 'UNASSIGNED' else "❌ UNASSIGNED"
+                        st.write(f"{i}. **{task['name']}** - {owner_display} - {task['status']} {status_icon}")
+            
+            tab_index += 1
+
 def show_sharepoint_setup(planner: AscentPlannerCalendar):
     """Configure SharePoint live feed setup"""
     st.header("SharePoint Live Feed Configuration")
@@ -2342,6 +2508,7 @@ def main():
         "Select View",
         [
             "Executive Dashboard",
+            "Beta Tasks by Department",
             "Complete SharePoint Data View",
             "Requirements Management",
             "Release Planning",
@@ -2379,6 +2546,8 @@ def main():
     # Main content area - SharePoint data focused views
     if view_mode == "Executive Dashboard":
         show_executive_dashboard(planner)
+    elif view_mode == "Beta Tasks by Department":
+        show_beta_tasks_by_department(planner)
     elif view_mode == "Complete SharePoint Data View":
         show_complete_sharepoint_data(planner)
     elif view_mode == "Requirements Management":
