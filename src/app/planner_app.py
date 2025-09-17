@@ -2101,51 +2101,73 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         )
         st.plotly_chart(fig_dept_dist, use_container_width=True, key="beta_dept_distribution")
     
-    # Interactive Beta task selector
+    # Interactive Beta task selector - organized by department
     st.subheader("Select Beta Task to Review")
     
-    task_options = ["Select Beta task..."] + [f"{task['task_name']} ({task['department']})" for task in beta_task_list]
+    # Group tasks by department for organized dropdown
+    dept_order = ['Onboarding', 'Cancellations', 'Commissions', 'Claims', 'Reinsurance', 'Accounting', 'Contracts', 'Configuration', 'Data Migration', 'Communications', 'General']
+    
+    task_options = ["Select Beta task..."]
+    
+    # Add tasks organized by department
+    for dept in dept_order:
+        dept_tasks = [task for task in beta_task_list if task['department'] == dept]
+        if dept_tasks:
+            task_options.append(f"--- {dept.upper()} DEPARTMENT ({len(dept_tasks)} tasks) ---")
+            for task in sorted(dept_tasks, key=lambda x: x['task_name']):
+                status_indicator = "✅" if 'done' in task['status'].lower() else "🔄" if 'progress' in task['status'].lower() else "⏳"
+                owner_indicator = f"[{task['owner']}]" if task['owner'] != 'UNASSIGNED' else "[UNASSIGNED]"
+                task_options.append(f"    {task['task_name']} {status_indicator} {owner_indicator}")
+    
     selected_beta_task = st.selectbox(
-        "Choose from 65 Beta tasks:",
+        "Choose from 65 Beta tasks organized by department:",
         task_options,
         key="all_beta_tasks_dropdown"
     )
     
-    if selected_beta_task != "Select Beta task...":
-        # Find the selected task
-        task_name_only = selected_beta_task.split(' (')[0]
-        selected_task = next(task for task in beta_task_list if task['task_name'] == task_name_only)
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="data-card">
-                <h4>Task Details</h4>
-                <p><strong>Task:</strong> {selected_task['task_name']}</p>
-                <p><strong>Department:</strong> {selected_task['department']}</p>
-                <p><strong>Beta Date:</strong> {selected_task['beta_date']}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="data-card">
-                <h4>Assignment</h4>
-                <p><strong>Owner:</strong> {selected_task['owner']}</p>
-                <p><strong>Status:</strong> {selected_task['status']}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            if selected_task['due_soon']:
-                st.error("**DUE SOON** - Beta date approaching")
-            elif selected_task['owner'] == 'UNASSIGNED':
-                st.warning("**NEEDS OWNER** - No one assigned")
-            elif 'done' in selected_task['status'].lower():
-                st.success("**READY** - Task completed")
-            else:
-                st.info("**IN PROGRESS** - Work ongoing")
+    if selected_beta_task != "Select Beta task..." and not selected_beta_task.startswith("---"):
+        # Extract task name from the formatted dropdown option
+        if selected_beta_task.startswith("    "):
+            # Remove leading spaces and extract task name before status indicators
+            task_name_clean = selected_beta_task.strip()
+            # Remove status and owner indicators
+            task_name_clean = task_name_clean.split(" ✅")[0].split(" 🔄")[0].split(" ⏳")[0]
+            task_name_clean = task_name_clean.split(" [")[0]  # Remove owner indicator
+            
+            # Find the selected task
+            selected_task = next((task for task in beta_task_list if task['task_name'] == task_name_clean), None)
+            
+            if selected_task:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.markdown(f"""
+                    <div class="data-card">
+                        <h4>Task Details</h4>
+                        <p><strong>Task:</strong> {selected_task['task_name']}</p>
+                        <p><strong>Department:</strong> {selected_task['department']}</p>
+                        <p><strong>Beta Date:</strong> {selected_task['beta_date']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown(f"""
+                    <div class="data-card">
+                        <h4>Assignment</h4>
+                        <p><strong>Owner:</strong> {selected_task['owner']}</p>
+                        <p><strong>Status:</strong> {selected_task['status']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col3:
+                    if selected_task['due_soon']:
+                        st.error("**DUE SOON** - Beta date approaching")
+                    elif selected_task['owner'] == 'UNASSIGNED':
+                        st.warning("**NEEDS OWNER** - No one assigned")
+                    elif 'done' in selected_task['status'].lower():
+                        st.success("**READY** - Task completed")
+                    else:
+                        st.info("**IN PROGRESS** - Work ongoing")
     
     # Complete Beta task table
     st.subheader("Complete Beta Task List")
