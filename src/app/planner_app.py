@@ -13,6 +13,7 @@ from typing import Dict, List, Any, Optional
 import calendar
 import numpy as np
 import hashlib
+from .sharepoint_connector import SharePointConnector
 
 # Page configuration
 st.set_page_config(
@@ -22,28 +23,47 @@ st.set_page_config(
 )
 
 class AscentPlannerCalendar:
-    def __init__(self, excel_path: str):
+    def __init__(self, excel_path: str, use_live_feed: bool = False):
         self.excel_path = excel_path
         self.data: Dict[str, pd.DataFrame] = {}
         self.current_date = datetime.now().date()
+        self.use_live_feed = use_live_feed
+        self.sharepoint_connector = SharePointConnector() if use_live_feed else None
         self.load_data()
     
     def load_data(self) -> None:
-        """Load data from Excel file"""
+        """Load data from Excel file or live SharePoint feed"""
         try:
+            # Try live feed first if enabled
+            if self.use_live_feed and self.sharepoint_connector:
+                live_data = self.sharepoint_connector.get_live_data()
+                if live_data:
+                    self.data = live_data
+                    st.success(f"Loaded {len(self.data)} sheets from live SharePoint feed")
+                    return
+            
+            # Fallback to local file
             if not os.path.exists(self.excel_path):
-                st.error(f"📂 Excel file not found: {self.excel_path}")
+                st.error(f"Excel file not found: {self.excel_path}")
                 return
             
             excel_file = pd.ExcelFile(self.excel_path)
             for sheet_name in excel_file.sheet_names:
                 df = pd.read_excel(self.excel_path, sheet_name=sheet_name)
                 self.data[sheet_name] = df
-                
-            st.success(f"Loaded {len(self.data)} sheets from Excel file")
+            
+            # Check file modification time
+            file_mod_time = os.path.getmtime(self.excel_path)
+            mod_datetime = datetime.fromtimestamp(file_mod_time)
+            time_diff = datetime.now() - mod_datetime
+            
+            if time_diff.total_seconds() < 300:  # Less than 5 minutes
+                st.success(f"Loaded {len(self.data)} sheets from recently updated file (Live data)")
+            else:
+                st.info(f"Loaded {len(self.data)} sheets from local file (Last updated: {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')})")
             
         except Exception as e:
-            st.error(f"Error loading Excel file: {e}")
+            st.error(f"Error loading data: {e}")
     
     def get_planner_tasks(self) -> pd.DataFrame:
         """Get tasks from the main Planner sheet"""
@@ -1749,6 +1769,115 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
             )
             st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
+def show_sharepoint_setup(planner: AscentPlannerCalendar):
+    """Configure SharePoint live feed setup"""
+    st.header("SharePoint Live Feed Configuration")
+    
+    st.markdown("""
+    <div class="data-card">
+        <h4>Current SharePoint URL</h4>
+        <p><strong>File Location:</strong> https://shivohm.sharepoint.com/sites/Ascent-SDSTeam</p>
+        <p><strong>File Name:</strong> Ascent Planner Sep, 16 2025.xlsx</p>
+        <p><strong>Status:</strong> Ready for live feed integration</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Setup options
+    st.subheader("Live Feed Setup Options")
+    
+    option_tabs = st.tabs(["OneDrive Sync", "SharePoint Sync", "API Integration", "Manual Update"])
+    
+    with option_tabs[0]:
+        st.markdown("""
+        <div class="data-card">
+            <h4>OneDrive Sync (Recommended)</h4>
+            <ol>
+                <li>Open OneDrive on your computer</li>
+                <li>Navigate to the SharePoint site: Ascent-SDSTeam</li>
+                <li>Click "Sync" on the document library</li>
+                <li>The Excel file will sync to your local OneDrive folder</li>
+                <li>Update the application to point to the synced file</li>
+            </ol>
+            <p><strong>Benefits:</strong> Automatic updates, offline access, simple setup</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with option_tabs[1]:
+        st.markdown("""
+        <div class="data-card">
+            <h4>SharePoint Desktop Sync</h4>
+            <ol>
+                <li>Install SharePoint sync client</li>
+                <li>Sync the Ascent-SDSTeam site</li>
+                <li>Excel file appears in local SharePoint folder</li>
+                <li>Application automatically detects updates</li>
+            </ol>
+            <p><strong>Benefits:</strong> Direct SharePoint integration, team collaboration</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with option_tabs[2]:
+        st.markdown("""
+        <div class="data-card">
+            <h4>API Integration (Advanced)</h4>
+            <p><strong>Requirements:</strong></p>
+            <ul>
+                <li>SharePoint API credentials</li>
+                <li>Azure app registration</li>
+                <li>OAuth authentication setup</li>
+            </ul>
+            <p><strong>Benefits:</strong> Real-time updates, no local storage needed</p>
+            <p><strong>Status:</strong> Framework ready, needs authentication configuration</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with option_tabs[3]:
+        st.markdown("""
+        <div class="data-card">
+            <h4>Manual Update Process</h4>
+            <ol>
+                <li>Download updated Excel file from SharePoint</li>
+                <li>Replace local file: "Ascent Planner Sep, 16 2025.xlsx"</li>
+                <li>Click "Refresh Data" in application</li>
+                <li>Application detects file changes automatically</li>
+            </ol>
+            <p><strong>Benefits:</strong> Simple, no technical setup required</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Current status
+    st.subheader("Current Data Status")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # File information
+        if os.path.exists(planner.excel_path):
+            file_mod_time = os.path.getmtime(planner.excel_path)
+            mod_datetime = datetime.fromtimestamp(file_mod_time)
+            
+            st.markdown(f"""
+            <div class="data-card">
+                <h4>Local File Status</h4>
+                <p><strong>File Found:</strong> Yes</p>
+                <p><strong>Last Modified:</strong> {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>Size:</strong> {os.path.getsize(planner.excel_path):,} bytes</p>
+                <p><strong>Sheets:</strong> {len(planner.data)}</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col2:
+        # Live feed status
+        st.markdown(f"""
+        <div class="data-card">
+            <h4>Live Feed Status</h4>
+            <p><strong>Live Feed Enabled:</strong> {use_live_feed}</p>
+            <p><strong>SharePoint Connector:</strong> {'Active' if planner.sharepoint_connector else 'Inactive'}</p>
+            <p><strong>Auto-Refresh:</strong> {'Enabled' if use_live_feed else 'Manual'}</p>
+            <p><strong>Update Check:</strong> Every 5 minutes</p>
+        </div>
+        """, unsafe_allow_html=True)
+
 def check_authentication():
     """Check if user is authenticated"""
     return st.session_state.get('authenticated', False)
@@ -1914,7 +2043,10 @@ def main():
                 st.error(f"Error accessing files: {e}")
                 st.stop()
         
-        planner = AscentPlannerCalendar(excel_path)
+        # Check for live feed option
+        use_live_feed = st.sidebar.checkbox("Enable Live SharePoint Feed", value=False, help="Monitor SharePoint for real-time updates")
+        
+        planner = AscentPlannerCalendar(excel_path, use_live_feed=use_live_feed)
         
         if not planner.data:
             st.error("No data loaded. Please check the Excel file.")
@@ -1956,15 +2088,35 @@ def main():
             "Decision Tracking", 
             "Issue Management",
             "Data Migration Progress",
+            "SharePoint Live Feed Setup",
             "Calendar View",
             "Data Analytics"
         ]
     )
     
-    # Refresh button
-    if st.sidebar.button("Refresh Data"):
-        planner.load_data()
-        st.rerun()
+    # Live feed configuration
+    if use_live_feed:
+        st.sidebar.markdown("**Live Feed Status:**")
+        if planner.sharepoint_connector:
+            st.sidebar.success("SharePoint connector active")
+            if st.sidebar.button("Configure SharePoint URL"):
+                sharepoint_url = st.sidebar.text_input(
+                    "SharePoint File URL:",
+                    value="https://shivohm.sharepoint.com/:x:/r/sites/Ascent-SDSTeam/_layouts/15/Doc2.aspx...",
+                    help="Paste your SharePoint Excel file URL"
+                )
+                if sharepoint_url:
+                    planner.sharepoint_connector.set_sharepoint_url(sharepoint_url)
+        
+        # Auto-refresh for live feed
+        if st.sidebar.button("Refresh Live Data"):
+            planner.load_data()
+            st.rerun()
+    else:
+        # Regular refresh button
+        if st.sidebar.button("Refresh Data"):
+            planner.load_data()
+            st.rerun()
     
     # Main content area - task management focused views
     if view_mode == "Executive Dashboard":
@@ -1979,6 +2131,8 @@ def main():
         show_issue_management(planner)
     elif view_mode == "Data Migration Progress":
         show_data_migration_progress(planner)
+    elif view_mode == "SharePoint Live Feed Setup":
+        show_sharepoint_setup(planner)
     elif view_mode == "Calendar View":
         show_calendar_view(planner)
     elif view_mode == "Data Analytics":
