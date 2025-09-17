@@ -13,7 +13,64 @@ from typing import Dict, List, Any, Optional
 import calendar
 import numpy as np
 import hashlib
-from .sharepoint_connector import SharePointConnector
+# SharePoint connector functionality embedded to avoid import issues
+class SharePointConnector:
+    def __init__(self):
+        self.sharepoint_url = None
+        self.last_update = None
+        self.cache_duration = 300  # 5 minutes cache
+        
+    def set_sharepoint_url(self, url: str) -> bool:
+        """Set the SharePoint URL for live data feed"""
+        try:
+            if "sourcedoc=" in url:
+                self.sharepoint_url = url
+                return True
+            else:
+                st.error("Invalid SharePoint URL format")
+                return False
+        except Exception as e:
+            st.error(f"Error setting SharePoint URL: {e}")
+            return False
+    
+    def get_live_data(self) -> Optional[Dict[str, pd.DataFrame]]:
+        """Get live data from SharePoint Excel file"""
+        try:
+            st.info("Live SharePoint connection requires authentication setup")
+            return self._get_alternative_live_data()
+        except Exception as e:
+            st.error(f"Error connecting to SharePoint: {e}")
+            return None
+    
+    def _get_alternative_live_data(self) -> Optional[Dict[str, pd.DataFrame]]:
+        """Alternative methods for live data access"""
+        local_file = "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx"
+        
+        if os.path.exists(local_file):
+            file_mod_time = os.path.getmtime(local_file)
+            current_time = datetime.now().timestamp()
+            
+            if current_time - file_mod_time < 300:  # 5 minutes
+                st.success("Using recently updated local file (Live data)")
+            else:
+                st.info("Using local file (Last updated: " + 
+                       datetime.fromtimestamp(file_mod_time).strftime("%Y-%m-%d %H:%M:%S") + ")")
+            
+            try:
+                excel_file = pd.ExcelFile(local_file)
+                data = {}
+                for sheet_name in excel_file.sheet_names:
+                    df = pd.read_excel(local_file, sheet_name=sheet_name)
+                    data[sheet_name] = df
+                
+                self.last_update = datetime.now()
+                return data
+                
+            except Exception as e:
+                st.error(f"Error reading Excel file: {e}")
+                return None
+        
+        return None
 
 # Page configuration
 st.set_page_config(
