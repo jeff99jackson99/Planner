@@ -2708,14 +2708,26 @@ def apply_custom_css():
         margin-bottom: 1rem;
     }
     .header-container {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%);
-        padding: 2.5rem 1rem;
-        border-radius: 12px;
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 25%, #3b82f6 50%, #1d4ed8 75%, #1e40af 100%);
+        padding: 2.5rem 1.5rem;
+        border-radius: 16px;
         color: white;
         margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 8px 32px rgba(30, 58, 138, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 12px 40px rgba(30, 58, 138, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    .header-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+        pointer-events: none;
     }
     .section-header {
         background-color: #34495e;
@@ -2755,33 +2767,58 @@ def main():
         st.session_state.last_refresh = current_time
         st.rerun()
     
-    # Professional header with Ascent branding
+    # Professional header with Ascent Administration Services branding
     st.markdown("""
     <div class="header-container">
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
             <div style="
                 background: white; 
-                padding: 0.5rem 1rem; 
-                border-radius: 8px; 
-                margin-right: 1rem;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                padding: 0.8rem 1.5rem; 
+                border-radius: 12px; 
+                margin-right: 1.5rem;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                border: 2px solid rgba(255,255,255,0.9);
             ">
-                <span style="
-                    font-size: 1.8rem; 
-                    font-weight: 700; 
-                    color: #1e3a8a;
-                    font-family: 'Arial', sans-serif;
-                ">Ascent</span>
-                <span style="
-                    font-size: 1rem; 
-                    color: #3b82f6; 
-                    margin-left: 0.3rem;
-                ">→</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="
+                        font-size: 2.2rem; 
+                        font-weight: 700; 
+                        color: #1e3a8a;
+                        font-family: 'Arial', sans-serif;
+                        letter-spacing: -0.5px;
+                    ">Ascent</span>
+                    <span style="
+                        font-size: 1.2rem; 
+                        color: #3b82f6; 
+                        margin-left: 0.4rem;
+                        transform: rotate(-15deg);
+                        display: inline-block;
+                    ">↗</span>
+                </div>
+                <div style="
+                    font-size: 0.7rem; 
+                    color: #64748b; 
+                    font-weight: 500; 
+                    letter-spacing: 2px; 
+                    margin-top: 0.2rem;
+                    text-transform: uppercase;
+                ">ADMINISTRATION SERVICES</div>
             </div>
-            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 300; color: white;">Project Planner</h1>
+            <div style="text-align: left;">
+                <h1 style="margin: 0; font-size: 2.4rem; font-weight: 300; color: white; line-height: 1.1;">Project Planner</h1>
+                <p style="margin: 0.3rem 0 0 0; font-size: 1rem; opacity: 0.9; color: #e2e8f0;">Live Project Tracking & Management</p>
+            </div>
         </div>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.95; font-weight: 400;">Live SharePoint Project Tracking & Management System</p>
-        <p style="margin: 0.3rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">Auto-refreshing every 30 minutes • Arizona Time</p>
+        <div style="
+            background: rgba(255,255,255,0.1); 
+            padding: 0.8rem 1.5rem; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.2);
+        ">
+            <p style="margin: 0; font-size: 0.9rem; opacity: 0.95; color: white;">
+                📊 Live SharePoint Integration • 🕐 Auto-refresh: 30 minutes • 🌵 Arizona Time
+            </p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
