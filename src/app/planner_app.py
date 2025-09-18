@@ -2762,6 +2762,32 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
+    # Main navigation - moved from sidebar to top
+    st.markdown("### 🎯 Select View")
+    view_mode = st.selectbox(
+        "Choose your view:",
+        [
+            "Executive Dashboard",
+            "Beta Tasks by Department",
+            "Complete SharePoint Data View",
+            "Requirements Management",
+            "Release Planning",
+            "Decision Tracking", 
+            "Issue Management",
+            "Data Migration Progress",
+            "SharePoint Live Feed Setup",
+            "Calendar View",
+            "Data Analytics"
+        ],
+        key="main_view_selector"
+    )
+    
+    # Track current view to prevent auto-refresh interruptions
+    st.session_state.current_view = view_mode
+    
+    # Add visual separator
+    st.markdown("---")
+    
     try:
         # Initialize the planner - handle both local and cloud deployment
         excel_path = os.getenv('EXCEL_PATH', "/Users/jeffjackson/Desktop/Planner/Ascent Planner Sep, 16 2025.xlsx")
@@ -2844,25 +2870,6 @@ def main():
     if alerts:
         st.sidebar.warning(f"{len(alerts)} departments need attention")
     
-    view_mode = st.sidebar.selectbox(
-        "Select View",
-        [
-            "Executive Dashboard",
-            "Beta Tasks by Department",
-            "Complete SharePoint Data View",
-            "Requirements Management",
-            "Release Planning",
-            "Decision Tracking", 
-            "Issue Management",
-            "Data Migration Progress",
-            "SharePoint Live Feed Setup",
-            "Calendar View",
-            "Data Analytics"
-        ]
-    )
-    
-    # Track current view to prevent auto-refresh interruptions
-    st.session_state.current_view = view_mode
     
     # Live feed configuration
     if use_live_feed:
