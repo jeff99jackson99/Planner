@@ -2767,58 +2767,34 @@ def main():
         st.session_state.last_refresh = current_time
         st.rerun()
     
-    # Professional header with Ascent Administration Services branding
+    # Professional header with actual Ascent logo
+    try:
+        # Display the actual logo image
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.image("PCMI Ascent Admin Banner IDEA-01 (1).png", width=400)
+    except:
+        # Fallback if image not found
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 12px; margin-bottom: 1rem;">
+            <h1 style="color: white; margin: 0;">Ascent Administration Services</h1>
+            <p style="color: white; margin: 0.5rem 0 0 0; opacity: 0.9;">Project Planner</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Status information bar
     st.markdown("""
-    <div class="header-container">
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
-            <div style="
-                background: white; 
-                padding: 0.8rem 1.5rem; 
-                border-radius: 12px; 
-                margin-right: 1.5rem;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-                border: 2px solid rgba(255,255,255,0.9);
-            ">
-                <div style="display: flex; align-items: center;">
-                    <span style="
-                        font-size: 2.2rem; 
-                        font-weight: 700; 
-                        color: #1e3a8a;
-                        font-family: 'Arial', sans-serif;
-                        letter-spacing: -0.5px;
-                    ">Ascent</span>
-                    <span style="
-                        font-size: 1.2rem; 
-                        color: #3b82f6; 
-                        margin-left: 0.4rem;
-                        transform: rotate(-15deg);
-                        display: inline-block;
-                    ">↗</span>
-                </div>
-                <div style="
-                    font-size: 0.7rem; 
-                    color: #64748b; 
-                    font-weight: 500; 
-                    letter-spacing: 2px; 
-                    margin-top: 0.2rem;
-                    text-transform: uppercase;
-                ">ADMINISTRATION SERVICES</div>
-            </div>
-            <div style="text-align: left;">
-                <h1 style="margin: 0; font-size: 2.4rem; font-weight: 300; color: white; line-height: 1.1;">Project Planner</h1>
-                <p style="margin: 0.3rem 0 0 0; font-size: 1rem; opacity: 0.9; color: #e2e8f0;">Live Project Tracking & Management</p>
-            </div>
-        </div>
-        <div style="
-            background: rgba(255,255,255,0.1); 
-            padding: 0.8rem 1.5rem; 
-            border-radius: 8px; 
-            border: 1px solid rgba(255,255,255,0.2);
-        ">
-            <p style="margin: 0; font-size: 0.9rem; opacity: 0.95; color: white;">
-                📊 Live SharePoint Integration • 🕐 Auto-refresh: 30 minutes • 🌵 Arizona Time
-            </p>
-        </div>
+    <div style="
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+        padding: 0.8rem 1.5rem; 
+        border-radius: 8px; 
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        text-align: center;
+    ">
+        <p style="margin: 0; font-size: 0.9rem; color: #64748b;">
+            📊 Live SharePoint Integration • 🕐 Auto-refresh: 30 minutes • 🌵 Arizona Time
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2924,47 +2900,110 @@ def main():
             st.code(traceback.format_exc())
         st.stop()
     
-    # Sidebar navigation
-    st.sidebar.title("Navigation")
+    # Professional Sidebar Design
+    st.sidebar.markdown("""
+    <div style='
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 1.5rem 1rem;
+        margin: -1rem -1rem 1.5rem -1rem;
+        color: white;
+        text-align: center;
+    '>
+        <h2 style='margin: 0; font-size: 1.3rem; font-weight: 600;'>Project Control</h2>
+        <p style='margin: 0.5rem 0 0 0; font-size: 0.8rem; opacity: 0.9;'>Live SharePoint Management</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # User info and logout
-    st.sidebar.markdown(f"**User:** {st.session_state.get('username', 'Unknown')}")
-    if st.sidebar.button("Logout"):
+    # User Section
+    st.sidebar.markdown("""
+    <div style='
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 3px solid #1e3a8a;
+        margin-bottom: 1rem;
+    '>
+        <div style='font-size: 0.8rem; color: #64748b; margin-bottom: 0.3rem;'>CURRENT USER</div>
+        <div style='font-weight: 600; color: #1e3a8a;'>{}</div>
+    </div>
+    """.format(st.session_state.get('username', 'Unknown')), unsafe_allow_html=True)
+    
+    if st.sidebar.button("🚪 Logout", use_container_width=True):
         logout()
     
-    st.sidebar.markdown("---")
+    # System Status Section
+    st.sidebar.markdown("""
+    <div style='
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 3px solid #3b82f6;
+        margin: 1rem 0;
+    '>
+        <div style='font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;'>SYSTEM STATUS</div>
+        <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
+            <span style='font-size: 0.8rem; color: #374151;'>Today:</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{}</span>
+        </div>
+        <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
+            <span style='font-size: 0.8rem; color: #374151;'>Data Sources:</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{} sheets</span>
+        </div>
+        <div style='display: flex; justify-content: space-between;'>
+            <span style='font-size: 0.8rem; color: #374151;'>Status:</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>🟢 Live</span>
+        </div>
+    </div>
+    """.format(
+        planner.current_date.strftime('%B %d, %Y'),
+        len(planner.data)
+    ), unsafe_allow_html=True)
     
-    # Current date display
-    st.sidebar.markdown(f"**Today:** {planner.current_date.strftime('%B %d, %Y')}")
-    st.sidebar.markdown(f"**Data Sources:** {len(planner.data)} sheets loaded")
-    
-    # Quick alerts in sidebar
+    # Alerts Section
     alerts = planner.get_department_alerts()
     if alerts:
-        st.sidebar.warning(f"{len(alerts)} departments need attention")
+        st.sidebar.markdown("""
+        <div style='
+            background: #fef3c7;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #f59e0b;
+            margin: 1rem 0;
+        '>
+            <div style='font-size: 0.8rem; color: #92400e; margin-bottom: 0.3rem;'>ALERTS</div>
+            <div style='font-weight: 600; color: #92400e;'>⚠️ {} departments need attention</div>
+        </div>
+        """.format(len(alerts)), unsafe_allow_html=True)
     
-    
-    # Live feed configuration
+    # SharePoint Live Feed Section
     if use_live_feed:
-        st.sidebar.markdown("**Live Feed Status:**")
-        if planner.sharepoint_connector:
-            st.sidebar.success("SharePoint connector active")
-            if st.sidebar.button("Configure SharePoint URL"):
-                sharepoint_url = st.sidebar.text_input(
-                    "SharePoint File URL:",
-                    value="https://shivohm.sharepoint.com/:x:/r/sites/Ascent-SDSTeam/_layouts/15/Doc2.aspx...",
-                    help="Paste your SharePoint Excel file URL"
-                )
-                if sharepoint_url:
-                    planner.sharepoint_connector.set_sharepoint_url(sharepoint_url)
+        next_refresh = 1800 - (time.time() - st.session_state.last_refresh)  # 30 minutes
+        next_refresh_minutes = int(next_refresh // 60)
+        next_refresh_seconds = int(next_refresh % 60)
         
-        # Auto-refresh status display
-        st.sidebar.success("🔄 Auto-refresh: Every 30 seconds")
-        
-        # Show next refresh countdown
-        next_refresh = 30 - (time.time() - st.session_state.last_refresh)
-        if next_refresh > 0:
-            st.sidebar.info(f"Next refresh in: {int(next_refresh)} seconds")
+        st.sidebar.markdown("""
+        <div style='
+            background: #ecfdf5;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #059669;
+            margin: 1rem 0;
+        '>
+            <div style='font-size: 0.8rem; color: #047857; margin-bottom: 0.5rem;'>SHAREPOINT LIVE FEED</div>
+            <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
+                <span style='font-size: 0.8rem; color: #374151;'>Connection:</span>
+                <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>Active</span>
+            </div>
+            <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
+                <span style='font-size: 0.8rem; color: #374151;'>Auto-refresh:</span>
+                <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>30 min</span>
+            </div>
+            <div style='display: flex; justify-content: space-between;'>
+                <span style='font-size: 0.8rem; color: #374151;'>Next update:</span>
+                <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>{}m {}s</span>
+            </div>
+        </div>
+        """.format(next_refresh_minutes, next_refresh_seconds), unsafe_allow_html=True)
     
     # Main content area - SharePoint data focused views
     if view_mode == "Executive Dashboard":
