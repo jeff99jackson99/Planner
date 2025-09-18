@@ -2020,8 +2020,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     st.header("Beta Release Tasks - All Tasks with Departments")
     st.markdown("**Live SharePoint data - Complete Beta task listing**")
     
-    try:
-        planner_df = planner.get_planner_tasks()
+    planner_df = planner.get_planner_tasks()
     if planner_df.empty:
         st.error("No planner data available from SharePoint")
         return
@@ -2224,10 +2223,14 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     )
     
     # Filter tasks based on selected department
-    if selected_department == "All Departments":
-        filtered_tasks = beta_task_list
-    else:
-        filtered_tasks = [task for task in beta_task_list if task['department'] == selected_department]
+    try:
+        if selected_department == "All Departments":
+            filtered_tasks = beta_task_list
+        else:
+            filtered_tasks = [task for task in beta_task_list if task['department'] == selected_department]
+    except Exception as e:
+        st.error(f"Error filtering department '{selected_department}': {str(e)}")
+        filtered_tasks = []
     
     # Display count
     task_count = len(filtered_tasks)
@@ -2257,10 +2260,6 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         empty_df = pd.DataFrame(columns=['#', 'Task Name', 'Department', 'Owner', 'Status', 'Beta Date', 'Priority'])
         st.dataframe(empty_df, use_container_width=True)
         st.info(f"No Beta tasks currently assigned to {selected_department} department.")
-    
-    except Exception as e:
-        st.error(f"Error loading Beta tasks: {str(e)}")
-        st.info("Please try refreshing the page or contact support if the issue persists.")
 
 def show_sharepoint_setup(planner: AscentPlannerCalendar):
     """Configure SharePoint live feed setup"""
