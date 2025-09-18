@@ -229,7 +229,21 @@ class AscentPlannerCalendar:
         # CRITICAL: Preserve ALL data - only remove completely empty rows
         df = df.dropna(how='all')  # Remove completely empty rows but keep all columns
         
-        # Ensure all columns are preserved and accessible
+        # Map Google Sheets columns to expected names for compatibility
+        column_mapping = {
+            'Status': 'Status1',  # Google Sheets uses 'Status', app expects 'Status1'
+            'Beta Release': 'Beta Realease',  # Google Sheets uses 'Beta Release', app expects 'Beta Realease'
+            'PROD Release': 'PROD Release',  # Keep as is
+            'Task Name': 'Task Name',  # Keep as is
+            'Accountable': 'Accountable',  # Keep as is
+            'Req Unclear': 'Requirement Unclear'  # Google Sheets uses 'Req Unclear'
+        }
+        
+        # Apply column mapping if needed
+        for old_col, new_col in column_mapping.items():
+            if old_col in df.columns and old_col != new_col:
+                df[new_col] = df[old_col]
+        
         return df
     
     def get_open_decisions(self) -> pd.DataFrame:
@@ -1409,7 +1423,12 @@ def show_data_insights(planner: AscentPlannerCalendar):
         with col1:
             # Task completion rate analysis
             if not planner_df.empty:
-                status_counts = planner_df['Status1'].value_counts()
+                # Handle both Google Sheets ('Status') and SharePoint ('Status1') column names
+                status_col = 'Status' if 'Status' in planner_df.columns else 'Status1'
+                if status_col in planner_df.columns:
+                    status_counts = planner_df[status_col].value_counts()
+                else:
+                    status_counts = pd.Series()
                 status_counts = status_counts[status_counts.index.notna()]
                 
                 # Calculate completion metrics
