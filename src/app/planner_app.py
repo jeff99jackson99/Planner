@@ -8,12 +8,19 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta, date
+import pytz
 import os
 from typing import Dict, List, Any, Optional
 import calendar
 import numpy as np
 import hashlib
 import time
+
+def get_arizona_time():
+    """Get current time in Arizona timezone"""
+    arizona_tz = pytz.timezone('US/Arizona')
+    return datetime.now(arizona_tz)
+
 # SharePoint connector functionality embedded to avoid import issues
 class SharePointConnector:
     def __init__(self):
@@ -63,12 +70,16 @@ class SharePointConnector:
                 mod_datetime = datetime.fromtimestamp(file_mod_time)
                 
                 # Check if this looks like live SharePoint data
+                # Convert to Arizona time for display
+                arizona_tz = pytz.timezone('US/Arizona')
+                mod_datetime_az = mod_datetime.replace(tzinfo=pytz.UTC).astimezone(arizona_tz)
+                
                 if current_time - file_mod_time < 3600:  # Within last hour
-                    st.success(f"✅ LIVE SHAREPOINT DATA - Last updated: {mod_datetime.strftime('%H:%M:%S')}")
+                    st.success(f"✅ LIVE SHAREPOINT DATA - Last updated: {mod_datetime_az.strftime('%H:%M:%S')} AZ")
                 elif current_time - file_mod_time < 86400:  # Within last day
-                    st.info(f"📊 SharePoint data from today: {mod_datetime.strftime('%H:%M:%S')}")
+                    st.info(f"📊 SharePoint data from today: {mod_datetime_az.strftime('%H:%M:%S')} AZ")
                 else:
-                    st.warning(f"⚠️ SharePoint data from: {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+                    st.warning(f"⚠️ SharePoint data from: {mod_datetime_az.strftime('%Y-%m-%d %H:%M:%S')} AZ")
                 
                 try:
                     excel_file = pd.ExcelFile(file_path)
@@ -107,7 +118,7 @@ class AscentPlannerCalendar:
     def __init__(self, excel_path: str, use_live_feed: bool = False):
         self.excel_path = excel_path
         self.data: Dict[str, pd.DataFrame] = {}
-        self.current_date = datetime.now().date()
+        self.current_date = get_arizona_time().date()
         self.use_live_feed = use_live_feed
         self.sharepoint_connector = SharePointConnector() if use_live_feed else None
         self.load_data()
@@ -2319,7 +2330,7 @@ def show_sharepoint_setup(planner: AscentPlannerCalendar):
             <div class="data-card">
                 <h4>Local File Status</h4>
                 <p><strong>File Found:</strong> Yes</p>
-                <p><strong>Last Modified:</strong> {mod_datetime.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>Last Modified:</strong> {get_arizona_time().strftime('%Y-%m-%d %H:%M:%S AZ')}</p>
                 <p><strong>Size:</strong> {os.path.getsize(planner.excel_path):,} bytes</p>
                 <p><strong>Sheets:</strong> {len(planner.data)}</p>
             </div>
@@ -2630,7 +2641,7 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.markdown("**📡 SharePoint Live Feed**")
     st.sidebar.markdown("**File:** Ascent Planner Sep, 16 2025.xlsx")
-    st.sidebar.markdown("**Live Update:** " + datetime.now().strftime("%H:%M:%S"))
+    st.sidebar.markdown("**Live Update:** " + get_arizona_time().strftime("%H:%M:%S AZ"))
     st.sidebar.markdown("**Status:** 🟢 Auto-refreshing")
 
 if __name__ == "__main__":
