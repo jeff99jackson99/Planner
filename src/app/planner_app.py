@@ -2763,9 +2763,20 @@ def main():
     """, unsafe_allow_html=True)
     
     # Main navigation - moved from sidebar to top
-    st.markdown("### 🎯 Select View")
+    st.markdown("""
+    <div style='
+        background-color: #f8f9fa; 
+        padding: 1rem 1.5rem; 
+        border-radius: 8px; 
+        border-left: 4px solid #3498db; 
+        margin: 1rem 0;
+    '>
+        <h3 style='margin: 0; color: #2c3e50; font-weight: 600;'>Navigation</h3>
+        <p style='margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;'>Select your view to explore different aspects of the project</p>
+    </div>
+    """, unsafe_allow_html=True)
     view_mode = st.selectbox(
-        "Choose your view:",
+        "Select View:",
         [
             "Executive Dashboard",
             "Beta Tasks by Department",
