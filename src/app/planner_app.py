@@ -1957,13 +1957,120 @@ def show_issue_management(planner: AscentPlannerCalendar):
             st.write(f"**{priority}**: {summary} - Status: {status}")
 
 def show_data_migration_progress(planner: AscentPlannerCalendar):
-    """Track data migration daily progress"""
+    """Track data migration progress from available SharePoint data"""
     st.header("Data Migration Progress")
     
+    # Check available sheets
+    available_sheets = list(planner.data.keys())
+    st.info(f"Available SharePoint sheets: {', '.join(available_sheets)}")
+    
+    # Look for migration-related data in available sheets
     migration_df = planner.get_data_migration_status()
+    
     if migration_df.empty:
-        st.error("No migration data available")
+        st.warning("No dedicated 'Data Migration Updates' sheet found in SharePoint data.")
+        
+        # Try to find migration-related tasks in the main Planner sheet
+        st.subheader("Migration Tasks from Main Planner")
+        
+        planner_df = planner.get_planner_tasks()
+        if not planner_df.empty:
+            # Look for migration-related tasks
+            migration_tasks = planner_df[
+                planner_df['Task Name'].str.contains('migration|data|import|export', case=False, na=False)
+            ]
+            
+            if not migration_tasks.empty:
+                st.success(f"Found {len(migration_tasks)} migration-related tasks in the Planner sheet")
+                
+                # Show migration task metrics
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Migration Tasks", len(migration_tasks))
+                
+                with col2:
+                    completed_migration = len(migration_tasks[migration_tasks['Status1'] == 'DONE'])
+                    st.metric("Completed", completed_migration)
+                
+                with col3:
+                    in_progress_migration = len(migration_tasks[migration_tasks['Status1'].str.contains('Progress', na=False)])
+                    st.metric("In Progress", in_progress_migration)
+                
+                # Show migration tasks
+                st.subheader("Migration Task Details")
+                
+                for _, task in migration_tasks.iterrows():
+                    task_name = task.get('Task Name', 'Unknown')
+                    status = task.get('Status1', 'Not Set')
+                    owner = task.get('Accountable', 'Unassigned')
+                    beta_date = task.get('Beta Realease', 'Not Set')
+                    
+                    col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
+                    
+                    with col_a:
+                        st.write(f"**{task_name}**")
+                    
+                    with col_b:
+                        if status == 'DONE':
+                            st.success("✅ Done")
+                        elif 'Progress' in str(status):
+                            st.info("🔄 In Progress")
+                        else:
+                            st.warning("⏳ Pending")
+                    
+                    with col_c:
+                        if pd.notna(owner) and str(owner).lower() not in ['nan', 'none', '']:
+                            owner_clean = planner._consolidate_department_name(owner)
+                            st.write(f"*{owner_clean}*")
+                        else:
+                            st.error("Unassigned")
+                    
+                    with col_d:
+                        if pd.notna(beta_date):
+                            st.write(f"📅 {beta_date}")
+                        else:
+                            st.write("No date")
+                
+                # Migration progress chart
+                if len(migration_tasks) > 0:
+                    st.subheader("Migration Progress Overview")
+                    
+                    status_counts = migration_tasks['Status1'].value_counts()
+                    
+                    fig_migration = px.pie(
+                        values=status_counts.values,
+                        names=status_counts.index,
+                        title="Migration Task Status Distribution"
+                    )
+                    st.plotly_chart(fig_migration, use_container_width=True, key="migration_status_chart")
+            else:
+                st.info("No migration-related tasks found in the Planner sheet.")
+        else:
+            st.error("No Planner data available.")
+        
+        # Suggest creating a dedicated migration tracking sheet
+        st.markdown("---")
+        st.subheader("💡 Suggestion")
+        st.markdown("""
+        <div class="data-card">
+            <h4>Create a Dedicated Migration Tracking Sheet</h4>
+            <p>To better track data migration progress, consider adding a <strong>'Data Migration Updates'</strong> sheet to your SharePoint file with:</p>
+            <ul>
+                <li>Daily progress columns (dates as headers)</li>
+                <li>Migration modules/components as rows</li>
+                <li>Status updates for each day</li>
+                <li>Issues and blockers tracking</li>
+                <li>Completion percentages</li>
+            </ul>
+            <p>This will enable comprehensive daily migration tracking and progress visualization.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         return
+    
+    # Original migration sheet processing (if it exists)
+    st.success("Found dedicated Data Migration Updates sheet!")
     
     # Find date columns (they're the column headers)
     date_columns = [col for col in migration_df.columns if isinstance(col, pd.Timestamp)]
