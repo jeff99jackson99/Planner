@@ -1065,13 +1065,13 @@ def show_calendar_view(planner: AscentPlannerCalendar):
                             # Color code by status
                             if task['status'] == 'DONE':
                                 color = "#4caf50"  # Green
-                                icon = "✅"
+                                icon = "<span style='color: #16a34a; font-weight: 600;'>●</span>"
                             elif 'In Progress' in task['status']:
                                 color = "#2196f3"  # Blue
-                                icon = "🔄"
+                                icon = "<span style='color: #3b82f6; font-weight: 600;'>▲</span>"
                             else:
                                 color = "#ff9800"  # Orange
-                                icon = "⏳"
+                                icon = "<span style='color: #f59e0b; font-weight: 600;'>■</span>"
                             
                             st.markdown(f"""
                             <div style='
@@ -1100,16 +1100,16 @@ def show_calendar_view(planner: AscentPlannerCalendar):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("✅ **Completed Tasks**")
+        st.markdown("<span style='color: #16a34a; font-weight: 600;'>●</span> **Completed Tasks**", unsafe_allow_html=True)
     
     with col2:
-        st.markdown("🔄 **In Progress Tasks**")
+        st.markdown("<span style='color: #3b82f6; font-weight: 600;'>▲</span> **In Progress Tasks**", unsafe_allow_html=True)
     
     with col3:
-        st.markdown("⏳ **Pending Tasks**")
+        st.markdown("<span style='color: #f59e0b; font-weight: 600;'>■</span> **Pending Tasks**", unsafe_allow_html=True)
     
     with col4:
-        st.markdown("🔵 **Today's Date**")
+        st.markdown("<span style='color: #1e3a8a; font-weight: 600;'>◆</span> **Today's Date**", unsafe_allow_html=True)
     
     # Monthly summary
     st.markdown("---")
@@ -2375,7 +2375,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         if dept_tasks:
             task_options.append(f"--- {dept.upper()} DEPARTMENT ({len(dept_tasks)} tasks) ---")
             for task in sorted(dept_tasks, key=lambda x: x['task_name']):
-                status_indicator = "✅" if 'done' in task['status'].lower() else "🔄" if 'progress' in task['status'].lower() else "⏳"
+                status_indicator = "<span style='color: #16a34a;'>●</span>" if 'done' in task['status'].lower() else "<span style='color: #3b82f6;'>▲</span>" if 'progress' in task['status'].lower() else "<span style='color: #f59e0b;'>■</span>"
                 owner_indicator = f"[{task['owner']}]" if task['owner'] != 'UNASSIGNED' else "[UNASSIGNED]"
                 task_options.append(f"    {task['task_name']} {status_indicator} {owner_indicator}")
     
@@ -2392,7 +2392,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
             # Remove leading spaces and extract task name before status indicators
             task_name_clean = selected_beta_task.strip()
             # Remove status and owner indicators step by step
-            for indicator in [" ✅", " 🔄", " ⏳"]:
+            for indicator in [" <span style='color: #16a34a;'>●</span>", " <span style='color: #3b82f6;'>▲</span>", " <span style='color: #f59e0b;'>■</span>"]:
                 if indicator in task_name_clean:
                     task_name_clean = task_name_clean.split(indicator)[0]
             # Remove owner indicator
@@ -2707,27 +2707,27 @@ def apply_custom_css():
         box-shadow: 0 8px 24px rgba(30, 58, 138, 0.12);
     }
     
-    /* Enhanced Alert Containers */
+    /* Enhanced Alert Containers - Ascent Blue Theme */
     .alert-container {
-        background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
-        border: 1px solid #fde68a;
-        color: #92400e;
+        background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
         padding: 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
-        border-left: 4px solid #f59e0b;
+        box-shadow: 0 4px 16px rgba(30, 64, 175, 0.1);
+        border-left: 4px solid #2563eb;
     }
     
     .success-container {
-        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
-        border: 1px solid #bbf7d0;
-        color: #166534;
+        background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
         padding: 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 16px rgba(34, 197, 94, 0.1);
-        border-left: 4px solid #16a34a;
+        box-shadow: 0 4px 16px rgba(30, 64, 175, 0.1);
+        border-left: 4px solid #3b82f6;
     }
     
     .info-container {
@@ -2952,7 +2952,7 @@ def main():
         text-align: center;
     ">
         <p style="margin: 0; font-size: 0.9rem; color: #64748b;">
-            📊 Live SharePoint Integration • 🕐 Auto-refresh: 30 minutes • 🌵 Arizona Time
+            <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Live SharePoint Integration • <span style='color: #1e3a8a; font-weight: 600;'>●</span> Auto-refresh: 30 minutes • <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Arizona Time
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -3069,7 +3069,7 @@ def main():
     </div>
     """.format(st.session_state.get('username', 'Unknown')), unsafe_allow_html=True)
     
-    if st.sidebar.button("🚪 Logout", use_container_width=True):
+    if st.sidebar.button("▲ Logout", use_container_width=True):
         logout()
     
     # Compact Data Overview
@@ -3093,7 +3093,7 @@ def main():
         </div>
         <div style='display: flex; justify-content: space-between;'>
             <span style='font-size: 0.8rem; color: #374151;'>Status:</span>
-            <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>🟢 Live</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'><span style='color: #16a34a;'>●</span> Live</span>
         </div>
     </div>
     """.format(len(planner.data), total_rows), unsafe_allow_html=True)
@@ -3110,7 +3110,7 @@ def main():
             margin: 1rem 0;
         '>
             <div style='font-size: 0.8rem; color: #92400e; margin-bottom: 0.3rem;'>ALERTS</div>
-            <div style='font-weight: 600; color: #92400e;'>⚠️ {} departments need attention</div>
+            <div style='font-weight: 600; color: #92400e;'><span style='color: #f59e0b;'>▲</span> {} departments need attention</div>
         </div>
         """.format(len(alerts)), unsafe_allow_html=True)
     
