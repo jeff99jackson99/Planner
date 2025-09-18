@@ -73,8 +73,33 @@ class SharePointConnector:
             return None
     
     def _get_alternative_live_data(self) -> Optional[Dict[str, pd.DataFrame]]:
-        """Get live data from SharePoint-synced locations"""
-        # Try multiple potential SharePoint sync locations
+        """Get live data from Google Sheets and SharePoint-synced locations"""
+        # Try Google Sheets first, then SharePoint fallback
+        try:
+            # New Google Sheets URL
+            google_sheets_url = "https://docs.google.com/spreadsheets/d/1qE0Qv0OSmhpn38eU4SM7s73DB5zZreCW/export?format=xlsx"
+            
+            # Try to read from Google Sheets
+            try:
+                import requests
+                response = requests.get(google_sheets_url, timeout=10)
+                if response.status_code == 200:
+                    import io
+                    excel_file = pd.ExcelFile(io.BytesIO(response.content))
+                    data = {}
+                    for sheet_name in excel_file.sheet_names:
+                        df = pd.read_excel(io.BytesIO(response.content), sheet_name=sheet_name, header=0, keep_default_na=False)
+                        data[sheet_name] = df
+                    
+                    # Show Google Sheets success
+                    st.sidebar.success(f"📊 Google Sheets: {len(data)} sheets, live data")
+                    return data
+            except Exception as e:
+                st.sidebar.warning(f"Google Sheets connection issue: {str(e)[:50]}...")
+        except:
+            pass
+        
+        # Fallback to SharePoint sync locations
         potential_paths = [
             # OneDrive SharePoint sync path
             os.path.expanduser("~/OneDrive - Shivohm/Ascent-SDSTeam/Ascent Planner Sep, 16 2025.xlsx"),
