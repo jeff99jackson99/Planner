@@ -1065,13 +1065,13 @@ def show_calendar_view(planner: AscentPlannerCalendar):
                             # Color code by status
                             if task['status'] == 'DONE':
                                 color = "#4caf50"  # Green
-                                icon = "<span style='color: #16a34a; font-weight: 600;'>●</span>"
+                                icon = "<span style='color: #3b82f6; font-weight: 600;'>✓</span>"
                             elif 'In Progress' in task['status']:
                                 color = "#2196f3"  # Blue
-                                icon = "<span style='color: #3b82f6; font-weight: 600;'>▲</span>"
+                                icon = "<span style='color: #3b82f6; font-weight: 600;'>→</span>"
                             else:
                                 color = "#ff9800"  # Orange
-                                icon = "<span style='color: #f59e0b; font-weight: 600;'>■</span>"
+                                icon = "<span style='color: #3b82f6; font-weight: 600;'>○</span>"
                             
                             st.markdown(f"""
                             <div style='
@@ -1100,16 +1100,16 @@ def show_calendar_view(planner: AscentPlannerCalendar):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("<span style='color: #16a34a; font-weight: 600;'>●</span> **Completed Tasks**", unsafe_allow_html=True)
+        st.markdown("<span style='color: #3b82f6; font-weight: 600;'>✓</span> **Completed Tasks**", unsafe_allow_html=True)
     
     with col2:
-        st.markdown("<span style='color: #3b82f6; font-weight: 600;'>▲</span> **In Progress Tasks**", unsafe_allow_html=True)
+        st.markdown("<span style='color: #3b82f6; font-weight: 600;'>→</span> **In Progress Tasks**", unsafe_allow_html=True)
     
     with col3:
-        st.markdown("<span style='color: #f59e0b; font-weight: 600;'>■</span> **Pending Tasks**", unsafe_allow_html=True)
+        st.markdown("<span style='color: #3b82f6; font-weight: 600;'>○</span> **Pending Tasks**", unsafe_allow_html=True)
     
     with col4:
-        st.markdown("<span style='color: #1e3a8a; font-weight: 600;'>◆</span> **Today's Date**", unsafe_allow_html=True)
+        st.markdown("<span style='color: #1e3a8a; font-weight: 600;'>●</span> **Today's Date**", unsafe_allow_html=True)
     
     # Monthly summary
     st.markdown("---")
@@ -2375,7 +2375,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         if dept_tasks:
             task_options.append(f"--- {dept.upper()} DEPARTMENT ({len(dept_tasks)} tasks) ---")
             for task in sorted(dept_tasks, key=lambda x: x['task_name']):
-                status_indicator = "<span style='color: #16a34a;'>●</span>" if 'done' in task['status'].lower() else "<span style='color: #3b82f6;'>▲</span>" if 'progress' in task['status'].lower() else "<span style='color: #f59e0b;'>■</span>"
+                status_indicator = "<span style='color: #3b82f6;'>✓</span>" if 'done' in task['status'].lower() else "<span style='color: #3b82f6;'>→</span>" if 'progress' in task['status'].lower() else "<span style='color: #3b82f6;'>○</span>"
                 owner_indicator = f"[{task['owner']}]" if task['owner'] != 'UNASSIGNED' else "[UNASSIGNED]"
                 task_options.append(f"    {task['task_name']} {status_indicator} {owner_indicator}")
     
@@ -2392,7 +2392,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
             # Remove leading spaces and extract task name before status indicators
             task_name_clean = selected_beta_task.strip()
             # Remove status and owner indicators step by step
-            for indicator in [" <span style='color: #16a34a;'>●</span>", " <span style='color: #3b82f6;'>▲</span>", " <span style='color: #f59e0b;'>■</span>"]:
+            for indicator in [" <span style='color: #3b82f6;'>✓</span>", " <span style='color: #3b82f6;'>→</span>", " <span style='color: #3b82f6;'>○</span>"]:
                 if indicator in task_name_clean:
                     task_name_clean = task_name_clean.split(indicator)[0]
             # Remove owner indicator
@@ -3103,14 +3103,14 @@ def main():
     if alerts:
         st.sidebar.markdown("""
         <div style='
-            background: #fef3c7;
+            background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
             padding: 1rem;
             border-radius: 8px;
-            border-left: 3px solid #f59e0b;
+            border-left: 3px solid #3b82f6;
             margin: 1rem 0;
         '>
-            <div style='font-size: 0.8rem; color: #92400e; margin-bottom: 0.3rem;'>ALERTS</div>
-            <div style='font-weight: 600; color: #92400e;'><span style='color: #f59e0b;'>▲</span> {} departments need attention</div>
+            <div style='font-size: 0.8rem; color: #1e40af; margin-bottom: 0.3rem;'>ALERTS</div>
+            <div style='font-weight: 600; color: #1e40af;'>{} departments need attention</div>
         </div>
         """.format(len(alerts)), unsafe_allow_html=True)
     
