@@ -146,9 +146,9 @@ class SharePointConnector:
                     
                     # Show comprehensive data capture confirmation
                     if "OneDrive" in file_path:
-                        st.sidebar.success(f"📡 OneDrive Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
+                        st.sidebar.info(f"📡 OneDrive Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     elif "SharePoint" in file_path:
-                        st.sidebar.success(f"📡 SharePoint Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
+                        st.sidebar.info(f"📡 SharePoint Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     else:
                         st.sidebar.info(f"📁 Local File: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     
@@ -235,7 +235,7 @@ class AscentPlannerCalendar:
             'Beta Release': 'Beta Realease',  # Google Sheets uses 'Beta Release', app expects 'Beta Realease'
             'PROD Release': 'PROD Release',  # Keep as is
             'Task Name': 'Task Name',  # Keep as is
-            'Accountable': 'Accountable',  # Keep as is
+            'Accountable': 'Accountable',  # Keep as is (if exists)
             'Req Unclear': 'Requirement Unclear'  # Google Sheets uses 'Req Unclear'
         }
         
@@ -243,6 +243,14 @@ class AscentPlannerCalendar:
         for old_col, new_col in column_mapping.items():
             if old_col in df.columns and old_col != new_col:
                 df[new_col] = df[old_col]
+        
+        # Handle missing Accountable column - Google Sheets might not have it
+        if 'Accountable' not in df.columns:
+            df['Accountable'] = 'UNASSIGNED'  # Default for Google Sheets data
+        
+        # Convert Req Unclear to boolean for consistency
+        if 'Requirement Unclear' in df.columns:
+            df['Requirement Unclear'] = df['Requirement Unclear'].astype(bool, errors='ignore')
         
         return df
     
@@ -3740,7 +3748,7 @@ def main():
         text-align: center;
     ">
         <p style="margin: 0; font-size: 0.9rem; color: #64748b;">
-            <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Live SharePoint Integration • <span style='color: #1e3a8a; font-weight: 600;'>●</span> Auto-refresh: 30 minutes • <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Arizona Time
+            <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Live Google Sheets Integration • <span style='color: #1e3a8a; font-weight: 600;'>●</span> Auto-refresh: 30 minutes • <span style='color: #1e3a8a; font-weight: 600;'>▲</span> Arizona Time
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -3987,7 +3995,7 @@ def main():
         margin-top: 1rem;
     '>
         Ascent Administration Services<br>
-        Live SharePoint Integration
+        Live Google Sheets Integration
     </div>
     """, unsafe_allow_html=True)
 
