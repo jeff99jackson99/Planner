@@ -439,29 +439,73 @@ class AscentPlannerCalendar:
         return any(keyword in issue_lower for keyword in ascent_keywords)
     
     def _is_ascent_team(self, name: str) -> bool:
-        """Check if this is an Ascent team member vs Sona contractor"""
-        name_lower = str(name).lower()
+        """Check if this is an Ascent team member vs Sona/SDS contractor"""
+        if not name or pd.isna(name):
+            return False
+            
+        name_lower = str(name).lower().strip()
         
-        # Ascent team members
-        ascent_names = ['matt', 'madison', 'sds', 'ascent']
+        # Sona/SDS contractors - NOT Ascent priorities (check first)
+        sona_sds_names = [
+            'sona', 'sds', 'sona data systems', 'contractor', 'upendra', 'naresh', 'shivani', 
+            'dattu', 'chaudhari', 'pansuriya', 'chinial', 'nareshbhai',
+            'upendrachaudhari', 'shivanichinial', 'data systems'
+        ]
         
-        # Sona contractors (exclude from alerts)
-        sona_names = ['upendra', 'naresh', 'shivani', 'dattu', 'sona']
-        
-        # If it's a Sona contractor, don't include
-        if any(sona in name_lower for sona in sona_names):
+        # If it's clearly a Sona/SDS contractor, return False
+        if any(sona_name in name_lower for sona_name in sona_sds_names):
             return False
         
-        # If it's clearly Ascent, include
-        if any(ascent in name_lower for ascent in ascent_names):
+        # Ascent team members and departments (ASCENT PRIORITY)
+        ascent_names = [
+            'matt', 'madison', 'ascent', 'admin', 'management', 
+            'executive', 'director', 'manager', 'lead', 'gayatri',
+            'team', 'department'
+        ]
+        
+        # If it's clearly Ascent, return True
+        if any(ascent_name in name_lower for ascent_name in ascent_names):
             return True
         
         # Skip unassigned items (handled elsewhere)
-        if 'unassigned' in name_lower:
+        if 'unassigned' in name_lower or name_lower in ['nan', 'none', '']:
             return False
         
-        # Default to including (better to over-alert than miss something)
+        # For unclear cases, default to Ascent (better to over-include Ascent tasks)
         return True
+    
+    def get_ascent_priority_tasks(self) -> pd.DataFrame:
+        """Get tasks that are ASCENT's responsibility (critical priority)"""
+        planner_df = self.get_planner_tasks()
+        if planner_df.empty:
+            return pd.DataFrame()
+        
+        ascent_tasks = []
+        for _, task in planner_df.iterrows():
+            accountable = task.get('Accountable')
+            
+            # Include if unassigned (Ascent needs to assign) or if Ascent team
+            if (pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', ''] or
+                self._is_ascent_team(str(accountable))):
+                ascent_tasks.append(task)
+        
+        return pd.DataFrame(ascent_tasks) if ascent_tasks else pd.DataFrame()
+    
+    def get_sona_sds_tasks(self) -> pd.DataFrame:
+        """Get tasks assigned to Sona/SDS contractors (visibility only)"""
+        planner_df = self.get_planner_tasks()
+        if planner_df.empty:
+            return pd.DataFrame()
+        
+        sona_tasks = []
+        for _, task in planner_df.iterrows():
+            accountable = task.get('Accountable')
+            
+            if (pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', ''] and
+                not self._is_ascent_team(str(accountable))):
+                sona_tasks.append(task)
+        
+        return pd.DataFrame(sona_tasks) if sona_tasks else pd.DataFrame()
     
     def get_upcoming_milestones(self, days_ahead: int = 30) -> List[Dict[str, Any]]:
         """Get upcoming milestones and important dates"""
@@ -2136,6 +2180,166 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
             )
             st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
+def show_ascent_vs_sona_separation(planner: AscentPlannerCalendar):
+    """Clearly separate Ascent actionable tasks from Sona/SDS visibility tasks"""
+    st.header("Ascent vs Sona/SDS Task Separation")
+    st.markdown("**Ascent tasks = Actionable | Sona/SDS tasks = Visibility only**")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Separate tasks by team
+    ascent_tasks = []
+    sona_sds_tasks = []
+    unassigned_tasks = []
+    
+    for _, task in planner_df.iterrows():
+        task_name = str(task.get('Task Name', 'Unknown')).strip()
+        accountable = task.get('Accountable')
+        status = task.get('Status1', 'Not Set')
+        beta_date = task.get('Beta Realease')
+        prod_date = task.get('PROD Release')
+        
+        if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+            unassigned_tasks.append({
+                'task_name': task_name,
+                'status': status,
+                'beta_date': beta_date,
+                'prod_date': prod_date
+            })
+        elif planner._is_ascent_team(str(accountable)):
+            ascent_tasks.append({
+                'task_name': task_name,
+                'accountable': accountable,
+                'status': status,
+                'beta_date': beta_date,
+                'prod_date': prod_date
+            })
+        else:
+            sona_sds_tasks.append({
+                'task_name': task_name,
+                'accountable': accountable,
+                'status': status,
+                'beta_date': beta_date,
+                'prod_date': prod_date
+            })
+    
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Tasks", len(planner_df), help="All project tasks")
+    
+    with col2:
+        st.metric("ASCENT Tasks", len(ascent_tasks) + len(unassigned_tasks), help="Tasks Ascent can complete", delta="ACTIONABLE")
+    
+    with col3:
+        st.metric("Sona/SDS Tasks", len(sona_sds_tasks), help="Tasks for visibility only", delta="VISIBILITY")
+    
+    with col4:
+        ascent_percentage = ((len(ascent_tasks) + len(unassigned_tasks)) / len(planner_df) * 100) if len(planner_df) > 0 else 0
+        st.metric("Ascent Responsibility", f"{ascent_percentage:.1f}%")
+    
+    # Create tabs for clear separation
+    ascent_tab, sona_tab, unassigned_tab = st.tabs([
+        f"🎯 ASCENT TASKS ({len(ascent_tasks)})", 
+        f"👁️ SONA/SDS TASKS ({len(sona_sds_tasks)})",
+        f"❗ UNASSIGNED ({len(unassigned_tasks)})"
+    ])
+    
+    with ascent_tab:
+        st.markdown("### ✅ Tasks Ascent Can Complete")
+        if ascent_tasks:
+            for i, task in enumerate(ascent_tasks, 1):
+                col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
+                
+                with col_a:
+                    st.write(f"**{i}. {task['task_name']}**")
+                
+                with col_b:
+                    st.write(f"*{task['accountable']}*")
+                
+                with col_c:
+                    if task['status'] == 'DONE':
+                        st.success("✓ Done")
+                    elif 'Progress' in str(task['status']):
+                        st.info("→ In Progress")
+                    else:
+                        st.warning("○ Pending")
+                
+                with col_d:
+                    if pd.notna(task['beta_date']):
+                        st.write(f"Beta: {task['beta_date']}")
+                    elif pd.notna(task['prod_date']):
+                        st.write(f"Prod: {task['prod_date']}")
+                    else:
+                        st.write("No date")
+        else:
+            st.info("No tasks currently assigned to Ascent team members")
+    
+    with sona_tab:
+        st.markdown("### 👁️ Sona/SDS Tasks (Visibility Only)")
+        st.info("These tasks are handled by Sona/SDS contractors - Ascent cannot complete them")
+        
+        if sona_sds_tasks:
+            for i, task in enumerate(sona_sds_tasks, 1):
+                col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
+                
+                with col_a:
+                    st.write(f"**{i}. {task['task_name']}**")
+                
+                with col_b:
+                    st.write(f"*{task['accountable']}*")
+                
+                with col_c:
+                    if task['status'] == 'DONE':
+                        st.success("✓ Done")
+                    elif 'Progress' in str(task['status']):
+                        st.info("→ In Progress")
+                    else:
+                        st.warning("○ Pending")
+                
+                with col_d:
+                    if pd.notna(task['beta_date']):
+                        st.write(f"Beta: {task['beta_date']}")
+                    elif pd.notna(task['prod_date']):
+                        st.write(f"Prod: {task['prod_date']}")
+                    else:
+                        st.write("No date")
+        else:
+            st.info("No tasks currently assigned to Sona/SDS contractors")
+    
+    with unassigned_tab:
+        st.markdown("### ❗ Unassigned Tasks (Ascent Must Assign)")
+        st.warning("These tasks need owners assigned - Ascent's responsibility to delegate")
+        
+        if unassigned_tasks:
+            for i, task in enumerate(unassigned_tasks, 1):
+                col_a, col_b, col_c = st.columns([4, 1, 1])
+                
+                with col_a:
+                    st.write(f"**{i}. {task['task_name']}**")
+                
+                with col_b:
+                    if task['status'] == 'DONE':
+                        st.success("✓ Done")
+                    elif 'Progress' in str(task['status']):
+                        st.info("→ In Progress")
+                    else:
+                        st.error("○ Needs Owner")
+                
+                with col_c:
+                    if pd.notna(task['beta_date']):
+                        st.error(f"Beta: {task['beta_date']}")  # Red for urgent
+                    elif pd.notna(task['prod_date']):
+                        st.warning(f"Prod: {task['prod_date']}")
+                    else:
+                        st.write("No date")
+        else:
+            st.success("All tasks have been assigned!")
+
 def show_task_assignment_center(planner: AscentPlannerCalendar):
     """Focus on the 168 unassigned tasks that need owners"""
     st.header("Task Assignment Center")
@@ -3371,7 +3575,8 @@ def main():
         "",  # Remove redundant label
         [
             "Executive Dashboard",
-            "Beta Tasks by Department",
+            "Beta Tasks by Department", 
+            "Ascent vs Sona Task Separation",
             "Task Assignment Center",
             "Beta Release Readiness",
             "Weekly Action Items",
@@ -3551,6 +3756,8 @@ def main():
         show_executive_dashboard(planner)
     elif view_mode == "Beta Tasks by Department":
         show_beta_tasks_by_department(planner)
+    elif view_mode == "Ascent vs Sona Task Separation":
+        show_ascent_vs_sona_separation(planner)
     elif view_mode == "Task Assignment Center":
         show_task_assignment_center(planner)
     elif view_mode == "Beta Release Readiness":
