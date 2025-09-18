@@ -2344,6 +2344,144 @@ def show_ascent_vs_sona_separation(planner: AscentPlannerCalendar):
         else:
             st.success("All tasks have been assigned!")
 
+def show_department_task_organization(planner: AscentPlannerCalendar):
+    """Organize all tasks by business department with correct assignments"""
+    st.header("Department Task Organization")
+    st.markdown("**All tasks organized by business department with proper assignments**")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Organize tasks by business department
+    departments = {
+        'Claims': [],
+        'Accounting': [],
+        'Contract Admin': [],
+        'Cancellations': [],
+        'Onboarding': [],
+        'Commissions': [],
+        'Other': []
+    }
+    
+    for _, task in planner_df.iterrows():
+        task_name = str(task.get('Task Name', 'Unknown')).strip()
+        accountable = task.get('Accountable')
+        status = task.get('Status1', 'Not Set')
+        beta_date = task.get('Beta Realease')
+        prod_date = task.get('PROD Release')
+        unclear = task.get('Requirement Unclear', False)
+        
+        # Clean up accountable field
+        if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+            owner = planner._consolidate_department_name(str(accountable))
+            team_type = "ASCENT" if planner._is_ascent_team(str(accountable)) else "SONA/SDS"
+        else:
+            owner = "UNASSIGNED"
+            team_type = "UNASSIGNED"
+        
+        # Determine department based on task name
+        task_name_lower = task_name.lower()
+        department = "Other"  # Default
+        
+        if any(keyword in task_name_lower for keyword in ['claim', 'lemon squad', 'snapsheet']):
+            department = 'Claims'
+        elif any(keyword in task_name_lower for keyword in ['onboard', 'setup', 'agent', 'dealer', 'autohouse']):
+            department = 'Onboarding'
+        elif any(keyword in task_name_lower for keyword in ['cancel', 'refund']):
+            department = 'Cancellations'
+        elif any(keyword in task_name_lower for keyword in ['contract', 'wizard', 'front end', 'admin']):
+            department = 'Contract Admin'
+        elif any(keyword in task_name_lower for keyword in ['rpt', 'report', 'financial', 'accounting', 'earnings']):
+            department = 'Accounting'
+        elif any(keyword in task_name_lower for keyword in ['commission']):
+            department = 'Commissions'
+        
+        task_info = {
+            'task_name': task_name,
+            'owner': owner,
+            'team_type': team_type,
+            'status': status,
+            'beta_date': beta_date,
+            'prod_date': prod_date,
+            'unclear': unclear
+        }
+        
+        departments[department].append(task_info)
+    
+    # Department summary
+    st.subheader("Department Overview")
+    
+    dept_cols = st.columns(len(departments))
+    for i, (dept_name, tasks) in enumerate(departments.items()):
+        with dept_cols[i]:
+            ascent_count = sum(1 for task in tasks if task['team_type'] == 'ASCENT')
+            sona_count = sum(1 for task in tasks if task['team_type'] == 'SONA/SDS')
+            unassigned_count = sum(1 for task in tasks if task['team_type'] == 'UNASSIGNED')
+            
+            st.metric(dept_name, len(tasks))
+            st.caption(f"Ascent: {ascent_count} | Sona: {sona_count} | Unassigned: {unassigned_count}")
+    
+    # Department details
+    st.subheader("Department Task Details")
+    
+    selected_dept = st.selectbox(
+        "Select Department to View:",
+        list(departments.keys()),
+        key="dept_org_selector"
+    )
+    
+    dept_tasks = departments[selected_dept]
+    if dept_tasks:
+        st.write(f"**{len(dept_tasks)} tasks in {selected_dept} department**")
+        
+        # Filter by team type
+        team_filter = st.selectbox(
+            "Filter by Team:",
+            ["All Teams", "ASCENT", "SONA/SDS", "UNASSIGNED"],
+            key="dept_team_filter"
+        )
+        
+        filtered_dept_tasks = dept_tasks
+        if team_filter != "All Teams":
+            filtered_dept_tasks = [task for task in dept_tasks if task['team_type'] == team_filter]
+        
+        st.write(f"Showing {len(filtered_dept_tasks)} tasks")
+        
+        # Display tasks
+        for i, task in enumerate(filtered_dept_tasks, 1):
+            col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
+            
+            with col_a:
+                st.write(f"**{i}. {task['task_name']}**")
+            
+            with col_b:
+                if task['team_type'] == 'ASCENT':
+                    st.success(f"✓ {task['owner']}")
+                elif task['team_type'] == 'SONA/SDS':
+                    st.info(f"→ {task['owner']}")
+                else:
+                    st.error("○ UNASSIGNED")
+            
+            with col_c:
+                if task['status'] == 'DONE':
+                    st.success("✓ Done")
+                elif 'Progress' in str(task['status']):
+                    st.info("→ In Progress")
+                else:
+                    st.warning("○ Pending")
+            
+            with col_d:
+                if pd.notna(task['beta_date']):
+                    st.write(f"Beta: {task['beta_date']}")
+                elif pd.notna(task['prod_date']):
+                    st.write(f"Prod: {task['prod_date']}")
+                else:
+                    st.write("No date")
+    else:
+        st.info(f"No tasks found in {selected_dept} department")
+
 def show_task_assignment_center(planner: AscentPlannerCalendar):
     """Focus on the 168 unassigned tasks that need owners"""
     st.header("Task Assignment Center")
@@ -3581,6 +3719,7 @@ def main():
             "Executive Dashboard",
             "Beta Tasks by Department", 
             "Ascent vs Sona Task Separation",
+            "Department Task Organization",
             "Task Assignment Center",
             "Beta Release Readiness",
             "Weekly Action Items",
@@ -3762,6 +3901,8 @@ def main():
         show_beta_tasks_by_department(planner)
     elif view_mode == "Ascent vs Sona Task Separation":
         show_ascent_vs_sona_separation(planner)
+    elif view_mode == "Department Task Organization":
+        show_department_task_organization(planner)
     elif view_mode == "Task Assignment Center":
         show_task_assignment_center(planner)
     elif view_mode == "Beta Release Readiness":
