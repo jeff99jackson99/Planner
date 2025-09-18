@@ -155,11 +155,8 @@ class AscentPlannerCalendar:
                 if live_data:
                     self.data = live_data
                     
-                    # Show detailed information about ALL tabs loaded
-                    st.sidebar.markdown("**📊 SHAREPOINT DATA LOADED:**")
-                    for sheet_name, df in self.data.items():
-                        rows_with_data = len(df.dropna(how='all'))
-                        st.sidebar.markdown(f"• {sheet_name}: {rows_with_data} rows")
+                    # Clean data status indicator
+                    pass  # Data status now shown in main sidebar section
                     
                     return
             
@@ -2798,23 +2795,20 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Main navigation - Ascent branded
+    # Clean navigation section
     st.markdown("""
     <div style='
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
-        padding: 1.2rem 1.5rem; 
-        border-radius: 10px; 
-        border-left: 4px solid #1e3a8a; 
-        margin: 1.5rem 0;
-        box-shadow: 0 2px 8px rgba(30, 58, 138, 0.1);
-        border: 1px solid #e2e8f0;
+        background: #f8fafc; 
+        padding: 1rem; 
+        border-radius: 8px; 
+        border-left: 3px solid #1e3a8a; 
+        margin: 1rem 0 0.5rem 0;
     '>
-        <h3 style='margin: 0; color: #1e3a8a; font-weight: 600; font-size: 1.1rem;'>Navigation</h3>
-        <p style='margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;'>Select your view to explore different aspects of the project</p>
+        <h3 style='margin: 0; color: #1e3a8a; font-weight: 600; font-size: 1rem;'>Select View</h3>
     </div>
     """, unsafe_allow_html=True)
     view_mode = st.selectbox(
-        "Select View:",
+        "",  # Remove redundant label
         [
             "Executive Dashboard",
             "Beta Tasks by Department",
@@ -2834,8 +2828,8 @@ def main():
     # Track current view to prevent auto-refresh interruptions
     st.session_state.current_view = view_mode
     
-    # Add visual separator
-    st.markdown("---")
+    # Clean separator
+    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
     try:
         # Initialize the planner - handle both local and cloud deployment
@@ -2871,10 +2865,7 @@ def main():
                 st.error(f"Error accessing files: {e}")
                 st.stop()
         
-        # ONLY use SharePoint data - no local fallback
-        st.sidebar.markdown("**📡 SHAREPOINT LIVE DATA**")
-        st.sidebar.success("Connected to Ascent-SDSTeam")
-        st.sidebar.markdown("Using live SharePoint data only")
+        # Clean SharePoint status - details in main sidebar
         
         # Force live feed mode
         use_live_feed = True
@@ -2931,7 +2922,8 @@ def main():
     if st.sidebar.button("🚪 Logout", use_container_width=True):
         logout()
     
-    # System Status Section
+    # Compact Data Overview
+    total_rows = sum(len(df.dropna(how='all')) for df in planner.data.values())
     st.sidebar.markdown("""
     <div style='
         background: #f8fafc;
@@ -2940,24 +2932,21 @@ def main():
         border-left: 3px solid #3b82f6;
         margin: 1rem 0;
     '>
-        <div style='font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;'>SYSTEM STATUS</div>
+        <div style='font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;'>DATA OVERVIEW</div>
         <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
-            <span style='font-size: 0.8rem; color: #374151;'>Today:</span>
-            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{}</span>
+            <span style='font-size: 0.8rem; color: #374151;'>SharePoint:</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{} sheets</span>
         </div>
         <div style='display: flex; justify-content: space-between; margin-bottom: 0.3rem;'>
-            <span style='font-size: 0.8rem; color: #374151;'>Data Sources:</span>
-            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{} sheets</span>
+            <span style='font-size: 0.8rem; color: #374151;'>Total Records:</span>
+            <span style='font-size: 0.8rem; font-weight: 500; color: #1e3a8a;'>{:,}</span>
         </div>
         <div style='display: flex; justify-content: space-between;'>
             <span style='font-size: 0.8rem; color: #374151;'>Status:</span>
             <span style='font-size: 0.8rem; font-weight: 500; color: #059669;'>🟢 Live</span>
         </div>
     </div>
-    """.format(
-        planner.current_date.strftime('%B %d, %Y'),
-        len(planner.data)
-    ), unsafe_allow_html=True)
+    """.format(len(planner.data), total_rows), unsafe_allow_html=True)
     
     # Alerts Section
     alerts = planner.get_department_alerts()
@@ -3031,12 +3020,20 @@ def main():
     else:
         show_executive_dashboard(planner)  # Default view
     
-    # Footer with live status
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("**📡 SharePoint Live Feed**")
-    st.sidebar.markdown("**File:** Ascent Planner Sep, 16 2025.xlsx")
-    st.sidebar.markdown("**Live Update:** " + get_arizona_time().strftime("%H:%M:%S AZ"))
-    st.sidebar.markdown("**Status:** 🟢 Auto-refreshing")
+    # Footer - clean and minimal
+    st.sidebar.markdown("""
+    <div style='
+        text-align: center; 
+        padding: 1rem; 
+        color: #64748b; 
+        font-size: 0.7rem; 
+        border-top: 1px solid #e2e8f0; 
+        margin-top: 1rem;
+    '>
+        Ascent Administration Services<br>
+        Live SharePoint Integration
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
