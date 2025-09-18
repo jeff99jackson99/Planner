@@ -449,7 +449,7 @@ class AscentPlannerCalendar:
         sona_sds_names = [
             'sona', 'sds', 'sona data systems', 'contractor', 'upendra', 'naresh', 'shivani', 
             'dattu', 'chaudhari', 'pansuriya', 'chinial', 'nareshbhai',
-            'upendrachaudhari', 'shivanichinial', 'data systems', 'gayatri'
+            'upendrachaudhari', 'shivanichinial', 'data systems', 'gayatri', 'gayatri raol'
         ]
         
         # If it's clearly a Sona/SDS contractor, return False
