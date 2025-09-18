@@ -2708,12 +2708,14 @@ def apply_custom_css():
         margin-bottom: 1rem;
     }
     .header-container {
-        background: linear-gradient(90deg, #2c3e50 0%, #3498db 100%);
-        padding: 2rem 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%);
+        padding: 2.5rem 1rem;
+        border-radius: 12px;
         color: white;
         margin-bottom: 2rem;
         text-align: center;
+        box-shadow: 0 8px 32px rgba(30, 58, 138, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .section-header {
         background-color: #34495e;
@@ -2723,11 +2725,11 @@ def apply_custom_css():
         margin: 1rem 0;
     }
     .data-card {
-        background: white;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
         padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border-left: 4px solid #3498db;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.1);
+        border-left: 4px solid #1e3a8a;
         margin-bottom: 1rem;
     }
     </style>
@@ -2753,26 +2755,49 @@ def main():
         st.session_state.last_refresh = current_time
         st.rerun()
     
-    # Professional header with live status
+    # Professional header with Ascent branding
     st.markdown("""
     <div class="header-container">
-        <h1 style="margin: 0; font-size: 2.5rem; font-weight: 300;">Ascent Planner Calendar</h1>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9;">Live SharePoint Project Tracking & Management System</p>
-        <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; opacity: 0.7;">Auto-refreshing every 30 minutes</p>
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+            <div style="
+                background: white; 
+                padding: 0.5rem 1rem; 
+                border-radius: 8px; 
+                margin-right: 1rem;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ">
+                <span style="
+                    font-size: 1.8rem; 
+                    font-weight: 700; 
+                    color: #1e3a8a;
+                    font-family: 'Arial', sans-serif;
+                ">Ascent</span>
+                <span style="
+                    font-size: 1rem; 
+                    color: #3b82f6; 
+                    margin-left: 0.3rem;
+                ">→</span>
+            </div>
+            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 300; color: white;">Project Planner</h1>
+        </div>
+        <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.95; font-weight: 400;">Live SharePoint Project Tracking & Management System</p>
+        <p style="margin: 0.3rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">Auto-refreshing every 30 minutes • Arizona Time</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Main navigation - moved from sidebar to top
+    # Main navigation - Ascent branded
     st.markdown("""
     <div style='
-        background-color: #f8f9fa; 
-        padding: 1rem 1.5rem; 
-        border-radius: 8px; 
-        border-left: 4px solid #3498db; 
-        margin: 1rem 0;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+        padding: 1.2rem 1.5rem; 
+        border-radius: 10px; 
+        border-left: 4px solid #1e3a8a; 
+        margin: 1.5rem 0;
+        box-shadow: 0 2px 8px rgba(30, 58, 138, 0.1);
+        border: 1px solid #e2e8f0;
     '>
-        <h3 style='margin: 0; color: #2c3e50; font-weight: 600;'>Navigation</h3>
-        <p style='margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;'>Select your view to explore different aspects of the project</p>
+        <h3 style='margin: 0; color: #1e3a8a; font-weight: 600; font-size: 1.1rem;'>Navigation</h3>
+        <p style='margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;'>Select your view to explore different aspects of the project</p>
     </div>
     """, unsafe_allow_html=True)
     view_mode = st.selectbox(
