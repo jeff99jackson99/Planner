@@ -1000,54 +1000,180 @@ def show_todays_overview(planner: AscentPlannerCalendar):
         st.metric("Unclear Requirements", unclear_reqs)
 
 def show_calendar_view(planner: AscentPlannerCalendar):
-    """Show calendar view with task scheduling"""
-    st.header("📅 Calendar View")
+    """Show full month calendar with updates for each date"""
+    st.header("📅 Monthly Calendar View")
     
-    # Date picker
-    selected_date = st.date_input(
-        "Select Date",
-        value=planner.current_date,
-        min_value=date(2025, 1, 1),
-        max_value=date(2026, 12, 31)
-    )
+    # Month and year selector
+    col1, col2 = st.columns(2)
     
-    # Show tasks for selected date
-    tasks = planner.get_tasks_for_date(selected_date)
+    with col1:
+        selected_month = st.selectbox(
+            "Select Month",
+            list(range(1, 13)),
+            index=planner.current_date.month - 1,
+            format_func=lambda x: calendar.month_name[x]
+        )
     
-    if tasks:
-        st.success(f"📋 Found {len(tasks)} item(s) for {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        selected_year = st.selectbox(
+            "Select Year", 
+            [2024, 2025, 2026],
+            index=1 if planner.current_date.year == 2025 else (0 if planner.current_date.year == 2024 else 2)
+        )
+    
+    # Generate calendar for the selected month
+    cal = calendar.monthcalendar(selected_year, selected_month)
+    month_name = calendar.month_name[selected_month]
+    
+    st.subheader(f"{month_name} {selected_year}")
+    
+    # Create calendar grid
+    # Header with day names
+    day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    header_cols = st.columns(7)
+    for i, day_name in enumerate(day_names):
+        header_cols[i].markdown(f"**{day_name}**")
+    
+    # Calendar body
+    for week in cal:
+        week_cols = st.columns(7)
         
-        for i, task in enumerate(tasks, 1):
-            with st.container():
-                col1, col2, col3 = st.columns([2, 1, 1])
+        for i, day in enumerate(week):
+            if day == 0:
+                # Empty cell for days not in this month
+                week_cols[i].write("")
+            else:
+                # Get tasks for this date
+                current_date = date(selected_year, selected_month, day)
+                tasks = planner.get_tasks_for_date(current_date)
                 
-                with col1:
-                    st.markdown(f"### {i}. {task['task_name']}")
-                    st.write(f"**Source:** {task['source']}")
-                    st.write(f"**Type:** {task['date_type']}")
-                
-                with col2:
-                    st.write(f"**Accountable:** {task['accountable']}")
-                    st.write(f"**Status:** {task['status']}")
-                
-                with col3:
-                    if task.get('requirement_unclear'):
-                        st.error("⚠️ Unclear Requirements")
-                    elif task['status'] == 'DONE':
-                        st.success("✅ Completed")
-                    elif 'In Progress' in task['status']:
-                        st.info("🔄 In Progress")
+                # Create container for this day
+                with week_cols[i].container():
+                    # Day number with highlighting for today
+                    if current_date == planner.current_date:
+                        st.markdown(f"<div style='background-color: #e3f2fd; padding: 5px; border-radius: 5px; text-align: center; font-weight: bold; color: #1976d2;'>{day}</div>", unsafe_allow_html=True)
                     else:
-                        st.warning("⏳ Pending")
-                
-                if 'details' in task:
-                    with st.expander("View Details"):
-                        for detail in task['details']:
-                            st.write(f"• {detail}")
-                
-                st.divider()
+                        st.markdown(f"<div style='text-align: center; font-weight: bold; padding: 5px;'>{day}</div>", unsafe_allow_html=True)
+                    
+                    # Show tasks/updates for this date
+                    if tasks:
+                        st.markdown(f"<div style='font-size: 0.8em; color: #666; margin-bottom: 5px;'>{len(tasks)} update(s)</div>", unsafe_allow_html=True)
+                        
+                        # Show first few tasks (limit to avoid overcrowding)
+                        for task in tasks[:3]:  # Show max 3 tasks per day
+                            task_name = task['task_name']
+                            if len(task_name) > 20:
+                                task_name = task_name[:17] + "..."
+                            
+                            # Color code by status
+                            if task['status'] == 'DONE':
+                                color = "#4caf50"  # Green
+                                icon = "✅"
+                            elif 'In Progress' in task['status']:
+                                color = "#2196f3"  # Blue
+                                icon = "🔄"
+                            else:
+                                color = "#ff9800"  # Orange
+                                icon = "⏳"
+                            
+                            st.markdown(f"""
+                            <div style='
+                                font-size: 0.7em; 
+                                padding: 2px 4px; 
+                                margin: 1px 0; 
+                                background-color: {color}20; 
+                                border-left: 3px solid {color}; 
+                                border-radius: 3px;
+                            '>
+                                {icon} {task_name}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Show "more" indicator if there are additional tasks
+                        if len(tasks) > 3:
+                            st.markdown(f"<div style='font-size: 0.6em; color: #999; text-align: center;'>+{len(tasks) - 3} more</div>", unsafe_allow_html=True)
+                    
+                    # Add some spacing
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    
+    # Legend
+    st.markdown("---")
+    st.subheader("Legend")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("✅ **Completed Tasks**")
+    
+    with col2:
+        st.markdown("🔄 **In Progress Tasks**")
+    
+    with col3:
+        st.markdown("⏳ **Pending Tasks**")
+    
+    with col4:
+        st.markdown("🔵 **Today's Date**")
+    
+    # Monthly summary
+    st.markdown("---")
+    st.subheader("Monthly Summary")
+    
+    # Get all tasks for the month
+    month_start = date(selected_year, selected_month, 1)
+    if selected_month == 12:
+        month_end = date(selected_year + 1, 1, 1) - timedelta(days=1)
     else:
-        st.info(f"📅 No items scheduled for {selected_date.strftime('%A, %B %d, %Y')}")
+        month_end = date(selected_year, selected_month + 1, 1) - timedelta(days=1)
+    
+    all_month_tasks = []
+    current_date_iter = month_start
+    while current_date_iter <= month_end:
+        tasks = planner.get_tasks_for_date(current_date_iter)
+        all_month_tasks.extend(tasks)
+        current_date_iter += timedelta(days=1)
+    
+    if all_month_tasks:
+        summary_col1, summary_col2, summary_col3 = st.columns(3)
+        
+        with summary_col1:
+            total_tasks = len(all_month_tasks)
+            st.metric("Total Updates", total_tasks)
+        
+        with summary_col2:
+            completed_tasks = sum(1 for task in all_month_tasks if task['status'] == 'DONE')
+            completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            st.metric("Completed", f"{completed_tasks} ({completion_rate:.1f}%)")
+        
+        with summary_col3:
+            in_progress_tasks = sum(1 for task in all_month_tasks if 'In Progress' in task['status'])
+            st.metric("In Progress", in_progress_tasks)
+        
+        # Show upcoming tasks this month
+        st.subheader("Upcoming Tasks This Month")
+        
+        upcoming_tasks = [task for task in all_month_tasks if task['status'] != 'DONE']
+        if upcoming_tasks:
+            for task in upcoming_tasks[:10]:  # Show first 10 upcoming tasks
+                col_a, col_b, col_c = st.columns([3, 2, 1])
+                
+                with col_a:
+                    st.write(f"**{task['task_name']}**")
+                
+                with col_b:
+                    st.write(f"*{task['accountable']}*")
+                
+                with col_c:
+                    if 'In Progress' in task['status']:
+                        st.info("🔄")
+                    else:
+                        st.warning("⏳")
+            
+            if len(upcoming_tasks) > 10:
+                st.info(f"... and {len(upcoming_tasks) - 10} more upcoming tasks")
+        else:
+            st.success("🎉 All tasks for this month are completed!")
+    else:
+        st.info("No scheduled updates for this month.")
 
 def show_upcoming_milestones(planner: AscentPlannerCalendar):
     """Show upcoming milestones and deadlines"""
