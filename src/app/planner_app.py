@@ -2233,14 +2233,14 @@ def show_ascent_vs_sona_separation(planner: AscentPlannerCalendar):
         st.metric("Total Tasks", len(planner_df), help="All project tasks")
     
     with col2:
-        st.metric("ASCENT Tasks", len(ascent_tasks) + len(unassigned_tasks), help="Tasks Ascent can complete", delta="ACTIONABLE")
+        st.metric("ASCENT Tasks", len(ascent_tasks), help="Tasks actually assigned to Ascent", delta="ACTIONABLE")
     
     with col3:
-        st.metric("Sona/SDS Tasks", len(sona_sds_tasks), help="Tasks for visibility only", delta="VISIBILITY")
+        st.metric("Sona/SDS Tasks", len(sona_sds_tasks) + len(unassigned_tasks), help="Sona tasks + unassigned", delta="VISIBILITY")
     
     with col4:
-        ascent_percentage = ((len(ascent_tasks) + len(unassigned_tasks)) / len(planner_df) * 100) if len(planner_df) > 0 else 0
-        st.metric("Ascent Responsibility", f"{ascent_percentage:.1f}%")
+        ascent_percentage = (len(ascent_tasks) / len(planner_df) * 100) if len(planner_df) > 0 else 0
+        st.metric("Ascent Assignment", f"{ascent_percentage:.1f}%", help="Percentage actually assigned to Ascent")
     
     # Create tabs for clear separation
     ascent_tab, sona_tab, unassigned_tab = st.tabs([
