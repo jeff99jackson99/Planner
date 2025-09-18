@@ -21,6 +21,29 @@ def get_arizona_time():
     arizona_tz = pytz.timezone('US/Arizona')
     return datetime.now(arizona_tz)
 
+def map_department_name(dept_name):
+    """Map department names to standardized business departments"""
+    if not dept_name or pd.isna(dept_name):
+        return "Other"
+    
+    dept_lower = str(dept_name).lower().strip()
+    
+    # Core business departments
+    if any(keyword in dept_lower for keyword in ['claim', 'claims']):
+        return "Claims"
+    elif any(keyword in dept_lower for keyword in ['account', 'accounting', 'finance']):
+        return "Accounting"  
+    elif any(keyword in dept_lower for keyword in ['contract', 'admin']):
+        return "Contract Admin"
+    elif any(keyword in dept_lower for keyword in ['cancel', 'cancellation']):
+        return "Cancellations"
+    elif any(keyword in dept_lower for keyword in ['onboard', 'onboarding']):
+        return "Onboarding"
+    elif any(keyword in dept_lower for keyword in ['commission', 'commissions']):
+        return "Commissions"
+    else:
+        return "Other"
+
 # SharePoint connector functionality embedded to avoid import issues
 class SharePointConnector:
     def __init__(self):
@@ -2044,7 +2067,7 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
         status = task.get('Status1')
         beta_date = task.get('Beta Realease')
         
-        # Determine department based on task name
+        # Determine department based on task name using standardized mapping
         task_name_lower = task_name.lower()
         if any(keyword in task_name_lower for keyword in ['claim', 'lemon squad', 'snapsheet']):
             department = 'Claims'
@@ -2052,18 +2075,14 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
             department = 'Onboarding'
         elif any(keyword in task_name_lower for keyword in ['cancel', 'refund']):
             department = 'Cancellations'
-        elif any(keyword in task_name_lower for keyword in ['contract', 'wizard', 'front end']):
-            department = 'Contracts'
-        elif any(keyword in task_name_lower for keyword in ['coverage', 'rate', 'brand', 'product']):
-            department = 'Configuration'
-        elif any(keyword in task_name_lower for keyword in ['migration', 'data migration']):
-            department = 'Data Migration'
-        elif any(keyword in task_name_lower for keyword in ['rpt', 'report', 'financial']):
+        elif any(keyword in task_name_lower for keyword in ['contract', 'wizard', 'front end', 'admin']):
+            department = 'Contract Admin'
+        elif any(keyword in task_name_lower for keyword in ['rpt', 'report', 'financial', 'accounting', 'earnings']):
             department = 'Accounting'
-        elif any(keyword in task_name_lower for keyword in ['notification']):
-            department = 'Communications'
+        elif any(keyword in task_name_lower for keyword in ['commission']):
+            department = 'Commissions'
         else:
-            department = 'General'
+            department = 'Other'
         
         # Clean up owner and status
         if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
@@ -2115,8 +2134,8 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     # Interactive Beta task selector - organized by department
     st.subheader("Select Beta Task to Review")
     
-    # Group tasks by department for organized dropdown
-    dept_order = ['Onboarding', 'Cancellations', 'Commissions', 'Claims', 'Reinsurance', 'Accounting', 'Contracts', 'Configuration', 'Data Migration', 'Communications', 'General']
+    # Group tasks by department for organized dropdown - business priority order
+    dept_order = ['Claims', 'Accounting', 'Contract Admin', 'Cancellations', 'Onboarding', 'Commissions', 'Other']
     
     task_options = ["Select Beta task..."]
     
@@ -2138,15 +2157,23 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
     
     if selected_beta_task != "Select Beta task..." and not selected_beta_task.startswith("---"):
         # Extract task name from the formatted dropdown option
+        selected_task = None
         if selected_beta_task.startswith("    "):
             # Remove leading spaces and extract task name before status indicators
             task_name_clean = selected_beta_task.strip()
-            # Remove status and owner indicators
-            task_name_clean = task_name_clean.split(" ✅")[0].split(" 🔄")[0].split(" ⏳")[0]
-            task_name_clean = task_name_clean.split(" [")[0]  # Remove owner indicator
+            # Remove status and owner indicators step by step
+            for indicator in [" ✅", " 🔄", " ⏳"]:
+                if indicator in task_name_clean:
+                    task_name_clean = task_name_clean.split(indicator)[0]
+            # Remove owner indicator
+            if " [" in task_name_clean:
+                task_name_clean = task_name_clean.split(" [")[0]
             
-            # Find the selected task
-            selected_task = next((task for task in beta_task_list if task['task_name'] == task_name_clean), None)
+            # Find the selected task safely
+            for task in beta_task_list:
+                if task['task_name'] == task_name_clean:
+                    selected_task = task
+                    break
             
             if selected_task:
                 col1, col2, col3 = st.columns(3)
@@ -2179,6 +2206,8 @@ def show_beta_tasks_by_department(planner: AscentPlannerCalendar):
                         st.success("**READY** - Task completed")
                     else:
                         st.info("**IN PROGRESS** - Work ongoing")
+            else:
+                st.error("**Task not found** - Please try selecting a different task from the dropdown.")
     
     # Complete Beta task table
     st.subheader("Complete Beta Task List")
