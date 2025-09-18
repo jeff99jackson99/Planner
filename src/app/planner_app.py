@@ -449,7 +449,7 @@ class AscentPlannerCalendar:
         sona_sds_names = [
             'sona', 'sds', 'sona data systems', 'contractor', 'upendra', 'naresh', 'shivani', 
             'dattu', 'chaudhari', 'pansuriya', 'chinial', 'nareshbhai',
-            'upendrachaudhari', 'shivanichinial', 'data systems'
+            'upendrachaudhari', 'shivanichinial', 'data systems', 'gayatri'
         ]
         
         # If it's clearly a Sona/SDS contractor, return False
@@ -459,7 +459,7 @@ class AscentPlannerCalendar:
         # Ascent team members and departments (ASCENT PRIORITY)
         ascent_names = [
             'matt', 'madison', 'ascent', 'admin', 'management', 
-            'executive', 'director', 'manager', 'lead', 'gayatri',
+            'executive', 'director', 'manager', 'lead',
             'team', 'department'
         ]
         
