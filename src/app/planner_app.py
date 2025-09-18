@@ -2514,9 +2514,9 @@ def main():
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = time.time()
     
-    # Auto-refresh every 30 seconds
+    # Auto-refresh every 30 minutes (1800 seconds)
     current_time = time.time()
-    if current_time - st.session_state.last_refresh > 30:  # 30 seconds
+    if current_time - st.session_state.last_refresh > 1800:  # 30 minutes
         st.session_state.last_refresh = current_time
         st.rerun()
     
@@ -2525,7 +2525,7 @@ def main():
     <div class="header-container">
         <h1 style="margin: 0; font-size: 2.5rem; font-weight: 300;">Ascent Planner Calendar</h1>
         <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9;">Live SharePoint Project Tracking & Management System</p>
-        <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; opacity: 0.7;">Auto-refreshing every 30 seconds</p>
+        <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; opacity: 0.7;">Auto-refreshing every 30 minutes</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2627,6 +2627,9 @@ def main():
             "Data Analytics"
         ]
     )
+    
+    # Track current view to prevent auto-refresh interruptions
+    st.session_state.current_view = view_mode
     
     # Live feed configuration
     if use_live_feed:
