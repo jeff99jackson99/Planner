@@ -3053,19 +3053,7 @@ def main():
             st.code(traceback.format_exc())
         st.stop()
     
-    # Professional Sidebar Design
-    st.sidebar.markdown("""
-    <div style='
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        padding: 1.5rem 1rem;
-        margin: -1rem -1rem 1.5rem -1rem;
-        color: white;
-        text-align: center;
-    '>
-        <h2 style='margin: 0; font-size: 1.3rem; font-weight: 600;'>Project Control</h2>
-        <p style='margin: 0.5rem 0 0 0; font-size: 0.8rem; opacity: 0.9;'>Live SharePoint Management</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Clean sidebar without header box
     
     # User Section
     st.sidebar.markdown("""
