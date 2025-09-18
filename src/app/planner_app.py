@@ -458,7 +458,7 @@ class AscentPlannerCalendar:
         
         # Ascent team members and departments (ASCENT PRIORITY)
         ascent_names = [
-            'matt', 'madison', 'ascent', 'admin', 'management', 
+            'matt', 'madison', 'ascent', 'ascent team', 'admin', 'management', 
             'executive', 'director', 'manager', 'lead',
             'team', 'department'
         ]
