@@ -2103,6 +2103,78 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
             )
             st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
+def analyze_sharepoint_structure(planner: AscentPlannerCalendar):
+    """Deep analysis of SharePoint data structure and headers"""
+    st.header("SharePoint Data Structure Analysis")
+    st.markdown("**Comprehensive analysis of all data sources and their purposes**")
+    
+    if not planner.data:
+        st.error("No SharePoint data available for analysis")
+        return
+    
+    # Overview of all sheets
+    st.subheader("Data Source Overview")
+    
+    for sheet_name, df in planner.data.items():
+        with st.expander(f"📋 {sheet_name} - Detailed Analysis", expanded=False):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"""
+                **Sheet Metrics:**
+                - **Total Rows:** {len(df)}
+                - **Total Columns:** {len(df.columns)}
+                - **Non-empty Rows:** {len(df.dropna(how='all'))}
+                - **Data Density:** {(df.notna().sum().sum() / (len(df) * len(df.columns)) * 100):.1f}%
+                """)
+            
+            with col2:
+                st.markdown("**Column Analysis:**")
+                key_columns = []
+                date_columns = []
+                status_columns = []
+                
+                for col in df.columns:
+                    col_str = str(col).lower()
+                    non_null = df[col].notna().sum()
+                    
+                    if any(keyword in col_str for keyword in ['date', 'release', 'start', 'end', 'due']):
+                        date_columns.append(f"• {col} ({non_null} entries)")
+                    elif any(keyword in col_str for keyword in ['status', 'progress', 'complete']):
+                        status_columns.append(f"• {col} ({non_null} entries)")
+                    elif any(keyword in col_str for keyword in ['task', 'name', 'title', 'description']):
+                        key_columns.append(f"• {col} ({non_null} entries)")
+                
+                if key_columns:
+                    st.markdown("**Key Columns:**")
+                    for col in key_columns[:3]:
+                        st.markdown(col)
+                
+                if date_columns:
+                    st.markdown("**Date Columns:**")
+                    for col in date_columns[:3]:
+                        st.markdown(col)
+                
+                if status_columns:
+                    st.markdown("**Status Columns:**")
+                    for col in status_columns[:3]:
+                        st.markdown(col)
+            
+            # Show sample data
+            st.markdown("**Sample Data (First 3 Rows):**")
+            sample_df = df.head(3)
+            st.dataframe(sample_df, use_container_width=True)
+            
+            # Show unique values for key columns
+            if len(df.columns) > 0:
+                st.markdown("**Key Column Values:**")
+                for col in df.columns[:5]:  # First 5 columns
+                    unique_vals = df[col].dropna().unique()
+                    if len(unique_vals) <= 10:
+                        st.markdown(f"**{col}:** {', '.join(map(str, unique_vals))}")
+                    else:
+                        st.markdown(f"**{col}:** {len(unique_vals)} unique values")
+
 def show_complete_sharepoint_data(planner: AscentPlannerCalendar):
     """Show complete view of ALL SharePoint data from ALL tabs"""
     st.header("Complete SharePoint Data - All Tabs")
@@ -2974,6 +3046,7 @@ def main():
         [
             "Executive Dashboard",
             "Beta Tasks by Department",
+            "SharePoint Data Structure Analysis",
             "Complete SharePoint Data View",
             "Requirements Management",
             "Release Planning",
@@ -3149,6 +3222,8 @@ def main():
         show_executive_dashboard(planner)
     elif view_mode == "Beta Tasks by Department":
         show_beta_tasks_by_department(planner)
+    elif view_mode == "SharePoint Data Structure Analysis":
+        analyze_sharepoint_structure(planner)
     elif view_mode == "Complete SharePoint Data View":
         show_complete_sharepoint_data(planner)
     elif view_mode == "Requirements Management":
