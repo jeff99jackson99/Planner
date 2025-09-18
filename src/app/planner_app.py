@@ -2671,51 +2671,90 @@ def logout():
     st.rerun()
 
 def apply_custom_css():
-    """Apply custom CSS for professional theme"""
+    """Apply ascentadmin.com inspired professional theme"""
     st.markdown("""
     <style>
+    /* Global Styling - ascentadmin.com inspired */
     .main {
         padding-top: 1rem;
     }
     .stApp {
-        background-color: #f8f9fa;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
+    
+    /* Enhanced Sidebar - Professional Look */
     .css-1d391kg {
-        background-color: #ffffff;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-right: 2px solid #e2e8f0;
+        box-shadow: 4px 0 12px rgba(30, 58, 138, 0.05);
     }
+    
+    /* Professional Metrics */
     .metric-container {
-        background-color: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.08);
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #1e3a8a;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
     }
+    
+    .metric-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(30, 58, 138, 0.12);
+    }
+    
+    /* Enhanced Alert Containers */
     .alert-container {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+        border: 1px solid #fde68a;
+        color: #92400e;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
+        border-left: 4px solid #f59e0b;
     }
+    
     .success-container {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(34, 197, 94, 0.1);
+        border-left: 4px solid #16a34a;
     }
+    
+    .info-container {
+        background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #2563eb;
+    }
+    
+    /* Professional Header */
     .header-container {
         background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 25%, #3b82f6 50%, #1d4ed8 75%, #1e40af 100%);
         padding: 2.5rem 1.5rem;
-        border-radius: 16px;
+        border-radius: 20px;
         color: white;
         margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 12px 40px rgba(30, 58, 138, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 20px 60px rgba(30, 58, 138, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
         overflow: hidden;
     }
+    
     .header-container::before {
         content: '';
         position: absolute;
@@ -2723,23 +2762,146 @@ def apply_custom_css():
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.08) 100%);
         pointer-events: none;
     }
+    
+    /* Enhanced Section Headers */
     .section-header {
-        background-color: #34495e;
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
         color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin: 1.5rem 0;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.2);
+        font-weight: 600;
+        letter-spacing: 0.5px;
     }
+    
+    /* Premium Data Cards - ascentadmin.com style */
     .data-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.1);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(30, 58, 138, 0.08);
+        border: 1px solid #e2e8f0;
         border-left: 4px solid #1e3a8a;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .data-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 50%, #1e3a8a 100%);
+    }
+    
+    .data-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 48px rgba(30, 58, 138, 0.15);
+    }
+    
+    /* Professional Typography */
+    .data-card h4 {
+        color: #1e3a8a;
+        font-weight: 600;
+        font-size: 1.1rem;
         margin-bottom: 1rem;
+        letter-spacing: 0.3px;
+    }
+    
+    .data-card p {
+        color: #475569;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Enhanced Interactive Elements */
+    .stButton > button {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.2);
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(30, 58, 138, 0.3);
+        background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    }
+    
+    /* Professional Selectbox */
+    .stSelectbox > div > div {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(30, 58, 138, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .stSelectbox > div > div:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Enhanced Tables */
+    .stDataFrame {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Professional Charts */
+    .js-plotly-plot {
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Enhanced Metrics */
+    .stMetric {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .stMetric:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(30, 58, 138, 0.1);
+    }
+    
+    .stMetric > div {
+        color: #1e3a8a !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Professional Text Inputs */
+    .stTextInput > div > div > input {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
     </style>
     """, unsafe_allow_html=True)
