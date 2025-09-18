@@ -2633,86 +2633,6 @@ def show_weekly_action_items(planner: AscentPlannerCalendar):
     else:
         st.success("No urgent action items for this week!")
 
-def show_team_identification_helper(planner: AscentPlannerCalendar):
-    """Extract all unique person names for team identification"""
-    st.header("Team Identification Helper")
-    st.markdown("**All unique person names from SharePoint data for team assignment**")
-    
-    all_names = set()
-    
-    # Extract from Planner sheet
-    planner_df = planner.get_planner_tasks()
-    if not planner_df.empty and 'Accountable' in planner_df.columns:
-        for name in planner_df['Accountable'].dropna():
-            if str(name).lower() not in ['nan', 'none', '', 'n/a']:
-                all_names.add(str(name).strip())
-    
-    # Extract from Open Decisions sheet
-    decisions_df = planner.get_open_decisions()
-    if not decisions_df.empty:
-        for col in decisions_df.columns:
-            if 'gayatri' in str(col).lower() or 'owner' in str(col).lower() or 'responsible' in str(col).lower():
-                for name in decisions_df[col].dropna():
-                    if str(name).lower() not in ['nan', 'none', '', 'n/a']:
-                        all_names.add(str(name).strip())
-    
-    # Extract from any other name-related columns
-    for sheet_name, df in planner.data.items():
-        for col in df.columns:
-            col_str = str(col).lower()
-            if any(keyword in col_str for keyword in ['name', 'owner', 'responsible', 'accountable', 'assigned']):
-                for name in df[col].dropna():
-                    name_str = str(name).strip()
-                    if (len(name_str) > 2 and name_str.lower() not in ['nan', 'none', '', 'n/a', 'tbd', 'pending']):
-                        all_names.add(name_str)
-    
-    # Sort names alphabetically
-    sorted_names = sorted(list(all_names))
-    
-    st.subheader(f"All Unique Names Found ({len(sorted_names)} total)")
-    st.markdown("**Please identify which team each person belongs to:**")
-    
-    # Display in columns for easy reading
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**Names A-M:**")
-        for name in sorted_names:
-            if name[0].upper() <= 'M':
-                st.write(f"• {name}")
-    
-    with col2:
-        st.markdown("**Names N-Z:**")
-        for name in sorted_names:
-            if name[0].upper() > 'M':
-                st.write(f"• {name}")
-    
-    # Current team assignments for reference
-    st.markdown("---")
-    st.subheader("Current Team Assignments (Please Correct)")
-    
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        st.markdown("""
-        **Currently Identified as ASCENT:**
-        - Matt, Madison
-        - Ascent, Admin, Management roles
-        - Executive, Director, Manager, Lead roles
-        """)
-    
-    with col_b:
-        st.markdown("""
-        **Currently Identified as SONA/SDS:**
-        - Gayatri ✅ (corrected)
-        - Upendra, Naresh, Shivani, Dattu
-        - SDS, Sona, Sona Data Systems
-        - All contractor variations
-        """)
-    
-    st.markdown("---")
-    st.info("**Please review the names above and tell me which team each person belongs to so I can update the team identification accurately.**")
-
 def analyze_sharepoint_structure(planner: AscentPlannerCalendar):
     """Deep analysis of SharePoint data structure and headers"""
     st.header("SharePoint Data Structure Analysis")
@@ -3657,7 +3577,6 @@ def main():
             "Executive Dashboard",
             "Beta Tasks by Department", 
             "Ascent vs Sona Task Separation",
-            "Team Identification Helper",
             "Task Assignment Center",
             "Beta Release Readiness",
             "Weekly Action Items",
@@ -3839,8 +3758,6 @@ def main():
         show_beta_tasks_by_department(planner)
     elif view_mode == "Ascent vs Sona Task Separation":
         show_ascent_vs_sona_separation(planner)
-    elif view_mode == "Team Identification Helper":
-        show_team_identification_helper(planner)
     elif view_mode == "Task Assignment Center":
         show_task_assignment_center(planner)
     elif view_mode == "Beta Release Readiness":
