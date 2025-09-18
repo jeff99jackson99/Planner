@@ -2103,6 +2103,299 @@ def show_data_migration_progress(planner: AscentPlannerCalendar):
             )
             st.plotly_chart(fig_modules, use_container_width=True, key="migration_modules")
 
+def show_task_assignment_center(planner: AscentPlannerCalendar):
+    """Focus on the 168 unassigned tasks that need owners"""
+    st.header("Task Assignment Center")
+    st.markdown("**Address the critical gap: 87% of tasks need owners assigned**")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Find unassigned tasks
+    unassigned_tasks = []
+    for _, task in planner_df.iterrows():
+        accountable = task.get('Accountable')
+        if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+            task_name = str(task.get('Task Name', 'Unknown')).strip()
+            status = task.get('Status1', 'Not Set')
+            beta_date = task.get('Beta Realease')
+            prod_date = task.get('PROD Release')
+            unclear = task.get('Requirement Unclear', False)
+            
+            # Determine priority
+            priority = "High"
+            if pd.notna(beta_date):
+                priority = "URGENT - Beta Release"
+            elif pd.notna(prod_date):
+                priority = "High - Prod Release"
+            elif unclear:
+                priority = "Medium - Needs Clarification"
+            else:
+                priority = "Low"
+            
+            unassigned_tasks.append({
+                'task_name': task_name,
+                'status': status,
+                'beta_date': beta_date,
+                'prod_date': prod_date,
+                'unclear': unclear,
+                'priority': priority
+            })
+    
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Unassigned Tasks", len(unassigned_tasks))
+    
+    with col2:
+        beta_unassigned = sum(1 for task in unassigned_tasks if pd.notna(task['beta_date']))
+        st.metric("Beta Tasks Unassigned", beta_unassigned, help="Critical for Sept 25 release")
+    
+    with col3:
+        unclear_unassigned = sum(1 for task in unassigned_tasks if task['unclear'])
+        st.metric("Unclear & Unassigned", unclear_unassigned, help="Double blocker")
+    
+    with col4:
+        assignment_rate = ((193 - len(unassigned_tasks)) / 193 * 100) if len(unassigned_tasks) > 0 else 100
+        st.metric("Assignment Rate", f"{assignment_rate:.1f}%")
+    
+    # Priority-based assignment view
+    st.subheader("Unassigned Tasks by Priority")
+    
+    # Filter by priority
+    priority_filter = st.selectbox(
+        "Filter by Priority:",
+        ["All Priorities", "URGENT - Beta Release", "High - Prod Release", "Medium - Needs Clarification", "Low"],
+        key="assignment_priority_filter"
+    )
+    
+    filtered_tasks = unassigned_tasks
+    if priority_filter != "All Priorities":
+        filtered_tasks = [task for task in unassigned_tasks if task['priority'] == priority_filter]
+    
+    st.write(f"Showing {len(filtered_tasks)} unassigned tasks")
+    
+    # Display tasks
+    if filtered_tasks:
+        for i, task in enumerate(filtered_tasks, 1):
+            col_a, col_b, col_c = st.columns([3, 1, 1])
+            
+            with col_a:
+                st.write(f"**{i}. {task['task_name']}**")
+            
+            with col_b:
+                if task['priority'].startswith("URGENT"):
+                    st.error(task['priority'])
+                elif task['priority'].startswith("High"):
+                    st.warning(task['priority'])
+                else:
+                    st.info(task['priority'])
+            
+            with col_c:
+                if pd.notna(task['beta_date']):
+                    st.write(f"Beta: {task['beta_date']}")
+                elif pd.notna(task['prod_date']):
+                    st.write(f"Prod: {task['prod_date']}")
+                else:
+                    st.write("No date")
+
+def show_beta_release_readiness(planner: AscentPlannerCalendar):
+    """Focus on Beta release readiness - 7 days away"""
+    st.header("Beta Release Readiness")
+    st.markdown("**September 25, 2025 - 7 days away**")
+    
+    planner_df = planner.get_planner_tasks()
+    if planner_df.empty:
+        st.error("No planner data available")
+        return
+    
+    # Beta release analysis
+    beta_tasks = planner_df[planner_df['Beta Realease'].notna()]
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Beta Tasks", len(beta_tasks))
+    
+    with col2:
+        beta_done = len(beta_tasks[beta_tasks['Status1'] == 'DONE'])
+        st.metric("Completed", beta_done)
+    
+    with col3:
+        beta_assigned = 0
+        for _, task in beta_tasks.iterrows():
+            accountable = task.get('Accountable')
+            if pd.notna(accountable) and str(accountable).lower() not in ['nan', 'none', '']:
+                beta_assigned += 1
+        st.metric("Assigned", beta_assigned)
+    
+    with col4:
+        readiness = (beta_done / len(beta_tasks) * 100) if len(beta_tasks) > 0 else 0
+        st.metric("Readiness", f"{readiness:.1f}%")
+    
+    # Beta blockers
+    st.subheader("Beta Release Blockers")
+    
+    beta_blockers = []
+    for _, task in beta_tasks.iterrows():
+        task_name = str(task.get('Task Name', 'Unknown')).strip()
+        status = task.get('Status1', 'Not Set')
+        accountable = task.get('Accountable')
+        unclear = task.get('Requirement Unclear', False)
+        
+        # Identify blockers
+        blocker_type = None
+        if pd.isna(accountable) or str(accountable).lower() in ['nan', 'none', '']:
+            blocker_type = "No Owner Assigned"
+        elif status != 'DONE' and unclear:
+            blocker_type = "Unclear Requirements"
+        elif status == 'Not Started':
+            blocker_type = "Not Started"
+        elif 'Block' in str(status) or 'Hold' in str(status):
+            blocker_type = "Blocked/On Hold"
+        
+        if blocker_type:
+            beta_blockers.append({
+                'task_name': task_name,
+                'blocker_type': blocker_type,
+                'status': status,
+                'accountable': accountable if pd.notna(accountable) else 'Unassigned'
+            })
+    
+    if beta_blockers:
+        st.error(f"**{len(beta_blockers)} Beta tasks are blocked!**")
+        
+        # Group blockers by type
+        blocker_types = {}
+        for blocker in beta_blockers:
+            btype = blocker['blocker_type']
+            if btype not in blocker_types:
+                blocker_types[btype] = []
+            blocker_types[btype].append(blocker)
+        
+        for blocker_type, tasks in blocker_types.items():
+            with st.expander(f"{blocker_type} ({len(tasks)} tasks)", expanded=True):
+                for task in tasks:
+                    st.write(f"• **{task['task_name']}** - {task['accountable']} - {task['status']}")
+    else:
+        st.success("No Beta release blockers identified!")
+
+def show_weekly_action_items(planner: AscentPlannerCalendar):
+    """Show what needs to be done this week"""
+    st.header("This Week's Action Items")
+    st.markdown("**Focus on immediate priorities for the next 7 days**")
+    
+    # Get current week's priorities
+    today = planner.current_date
+    week_end = today + timedelta(days=7)
+    
+    planner_df = planner.get_planner_tasks()
+    decisions_df = planner.get_open_decisions()
+    hotfixes_df = planner.get_hotfixes_status()
+    
+    action_items = []
+    
+    # 1. Beta tasks due this week
+    if not planner_df.empty:
+        beta_this_week = planner_df[planner_df['Beta Realease'].notna()]
+        for _, task in beta_this_week.iterrows():
+            try:
+                beta_date = pd.to_datetime(task['Beta Realease'])
+                if beta_date.date() <= week_end:
+                    action_items.append({
+                        'type': 'Beta Task',
+                        'priority': 'URGENT',
+                        'item': str(task.get('Task Name', 'Unknown')),
+                        'owner': task.get('Accountable', 'Unassigned'),
+                        'due_date': beta_date.date(),
+                        'status': task.get('Status1', 'Not Set')
+                    })
+            except:
+                pass
+    
+    # 2. Open decisions needing resolution
+    if not decisions_df.empty:
+        for _, decision in decisions_df.iterrows():
+            if 'Open' in str(decision.get('Unnamed: 3', '')):
+                action_items.append({
+                    'type': 'Decision',
+                    'priority': 'HIGH',
+                    'item': str(decision.get('Unnamed: 2', 'Unknown Decision')),
+                    'owner': decision.get('Gayatri Raol ', 'Unknown'),
+                    'due_date': today,
+                    'status': 'Open'
+                })
+    
+    # 3. Critical issues requiring Ascent action
+    if not hotfixes_df.empty:
+        for _, issue in hotfixes_df.iterrows():
+            priority = str(issue.get('Unnamed: 3', '')).lower()
+            status = str(issue.get('Unnamed: 5', '')).lower()
+            if 'highest' in priority and 'done' not in status:
+                action_items.append({
+                    'type': 'Critical Issue',
+                    'priority': 'CRITICAL',
+                    'item': str(issue.get('Claim Related Feedback/Change Request/ Hot Fixes', 'Unknown Issue')),
+                    'owner': 'Ascent Team',
+                    'due_date': today,
+                    'status': status
+                })
+    
+    # Summary
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Action Items", len(action_items))
+    
+    with col2:
+        critical_count = sum(1 for item in action_items if item['priority'] == 'CRITICAL')
+        st.metric("Critical Items", critical_count)
+    
+    with col3:
+        urgent_count = sum(1 for item in action_items if item['priority'] == 'URGENT')
+        st.metric("Urgent Items", urgent_count)
+    
+    # Action items by priority
+    if action_items:
+        # Sort by priority
+        priority_order = {'CRITICAL': 0, 'URGENT': 1, 'HIGH': 2}
+        action_items.sort(key=lambda x: priority_order.get(x['priority'], 3))
+        
+        st.subheader("Action Items by Priority")
+        
+        for item in action_items:
+            col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
+            
+            with col_a:
+                st.write(f"**{item['item']}**")
+                st.caption(f"Type: {item['type']}")
+            
+            with col_b:
+                if item['priority'] == 'CRITICAL':
+                    st.error(item['priority'])
+                elif item['priority'] == 'URGENT':
+                    st.warning(item['priority'])
+                else:
+                    st.info(item['priority'])
+            
+            with col_c:
+                owner = item['owner']
+                if pd.notna(owner) and str(owner).lower() not in ['nan', 'none', '']:
+                    st.write(f"*{owner}*")
+                else:
+                    st.error("Unassigned")
+            
+            with col_d:
+                if item['status'] == 'DONE':
+                    st.success("✓ Done")
+                else:
+                    st.warning("Pending")
+    else:
+        st.success("No urgent action items for this week!")
+
 def analyze_sharepoint_structure(planner: AscentPlannerCalendar):
     """Deep analysis of SharePoint data structure and headers"""
     st.header("SharePoint Data Structure Analysis")
@@ -3046,6 +3339,9 @@ def main():
         [
             "Executive Dashboard",
             "Beta Tasks by Department",
+            "Task Assignment Center",
+            "Beta Release Readiness",
+            "Weekly Action Items",
             "SharePoint Data Structure Analysis",
             "Complete SharePoint Data View",
             "Requirements Management",
@@ -3222,6 +3518,12 @@ def main():
         show_executive_dashboard(planner)
     elif view_mode == "Beta Tasks by Department":
         show_beta_tasks_by_department(planner)
+    elif view_mode == "Task Assignment Center":
+        show_task_assignment_center(planner)
+    elif view_mode == "Beta Release Readiness":
+        show_beta_release_readiness(planner)
+    elif view_mode == "Weekly Action Items":
+        show_weekly_action_items(planner)
     elif view_mode == "SharePoint Data Structure Analysis":
         analyze_sharepoint_structure(planner)
     elif view_mode == "Complete SharePoint Data View":
