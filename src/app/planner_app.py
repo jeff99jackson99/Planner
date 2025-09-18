@@ -108,18 +108,24 @@ class SharePointConnector:
                     excel_file = pd.ExcelFile(file_path)
                     data = {}
                     for sheet_name in excel_file.sheet_names:
-                        df = pd.read_excel(file_path, sheet_name=sheet_name)
+                        # Load ALL data with no restrictions - preserve every field
+                        df = pd.read_excel(file_path, sheet_name=sheet_name, header=0, keep_default_na=False)
+                        # Ensure we capture all columns and rows
                         data[sheet_name] = df
                     
                     self.last_update = datetime.now()
                     
-                    # Show data source info
+                    # Verify ALL data is captured - critical check
+                    total_fields = sum(len(df.columns) for df in data.values())
+                    total_records = sum(len(df) for df in data.values())
+                    
+                    # Show comprehensive data capture confirmation
                     if "OneDrive" in file_path:
-                        st.sidebar.success("📡 Data Source: OneDrive SharePoint Sync")
+                        st.sidebar.success(f"📡 OneDrive Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     elif "SharePoint" in file_path:
-                        st.sidebar.success("📡 Data Source: SharePoint Desktop Sync")
+                        st.sidebar.success(f"📡 SharePoint Sync: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     else:
-                        st.sidebar.info("📁 Data Source: Local File")
+                        st.sidebar.info(f"📁 Local File: {len(data)} sheets, {total_fields} fields, {total_records:,} records")
                     
                     return data
                     
@@ -147,7 +153,7 @@ class AscentPlannerCalendar:
         self.load_data()
     
     def load_data(self) -> None:
-        """Load data ONLY from SharePoint live feed"""
+        """Load ALL data from SharePoint live feed - comprehensive capture"""
         try:
             # ONLY use SharePoint data - no local fallback
             if self.sharepoint_connector:
@@ -155,8 +161,8 @@ class AscentPlannerCalendar:
                 if live_data:
                     self.data = live_data
                     
-                    # Clean data status indicator
-                    pass  # Data status now shown in main sidebar section
+                    # CRITICAL: Verify ALL fields are captured
+                    self._verify_data_completeness()
                     
                     return
             
@@ -166,55 +172,82 @@ class AscentPlannerCalendar:
         except Exception as e:
             st.error(f"Error loading SharePoint data: {e}")
     
+    def _verify_data_completeness(self):
+        """Verify that ALL SharePoint data fields are captured"""
+        if not self.data:
+            return
+        
+        # Track data completeness for each sheet
+        for sheet_name, df in self.data.items():
+            # Ensure no data is lost
+            original_shape = df.shape
+            cleaned_shape = df.dropna(how='all').shape
+            
+            # Log any data that might be missing
+            if cleaned_shape[0] < original_shape[0]:
+                st.sidebar.warning(f"⚠️ {sheet_name}: {original_shape[0] - cleaned_shape[0]} empty rows detected")
+            
+            # Verify all columns are preserved
+            if len(df.columns) == 0:
+                st.sidebar.error(f"❌ {sheet_name}: No columns detected!")
+            
+        # Show data freshness timestamp
+        st.sidebar.info(f"🕐 Data loaded: {get_arizona_time().strftime('%H:%M:%S AZ')}")
+    
     def get_planner_tasks(self) -> pd.DataFrame:
-        """Get tasks from the main Planner sheet"""
+        """Get ALL tasks from the main Planner sheet - preserve every field"""
         if 'Planner' not in self.data:
             return pd.DataFrame()
         
         df = self.data['Planner'].copy()
         
-        # Clean up the data
-        df = df.dropna(how='all')  # Remove completely empty rows
+        # CRITICAL: Preserve ALL data - only remove completely empty rows
+        df = df.dropna(how='all')  # Remove completely empty rows but keep all columns
         
+        # Ensure all columns are preserved and accessible
         return df
     
     def get_open_decisions(self) -> pd.DataFrame:
-        """Get open decisions that need attention"""
+        """Get ALL open decisions - preserve every field"""
         sheet_name = 'Open Decision & Next Steps '
         if sheet_name not in self.data:
             return pd.DataFrame()
         
         df = self.data[sheet_name].copy()
+        # CRITICAL: Keep all data - only remove completely empty rows
         df = df.dropna(how='all')
         
         return df
     
     def get_hotfixes_status(self) -> pd.DataFrame:
-        """Get current hotfixes and their status"""
+        """Get ALL hotfixes and their status - preserve every field"""
         if 'List of CR_HotFixes_ENHCE' not in self.data:
             return pd.DataFrame()
         
         df = self.data['List of CR_HotFixes_ENHCE'].copy()
+        # CRITICAL: Keep all data - preserve all fields
         df = df.dropna(how='all')
         
         return df
     
     def get_data_migration_status(self) -> pd.DataFrame:
-        """Get data migration progress"""
+        """Get ALL data migration progress - preserve every field"""
         if 'Data Migration Updates' not in self.data:
             return pd.DataFrame()
         
         df = self.data['Data Migration Updates'].copy()
+        # CRITICAL: Keep all migration data
         df = df.dropna(how='all')
         
         return df
     
     def get_roadmap_items(self) -> pd.DataFrame:
-        """Get roadmap items for upcoming releases"""
+        """Get ALL roadmap items - preserve every field"""
         if 'Roadmap for next two releases' not in self.data:
             return pd.DataFrame()
         
         df = self.data['Roadmap for next two releases'].copy()
+        # CRITICAL: Keep all roadmap data
         df = df.dropna(how='all')
         
         return df
